@@ -1,0 +1,49 @@
+-------------------------------------------------------------------------------
+
+Role	    Quyền hạn chính
+
+ADMIN	    Quản trị hệ thống, có toàn quyền quản lý
+LIBRARIAN	Quản lý mượn sách, quản lý sách, xem báo cáo
+MEMBER	    Người dùng thông thường, có thể mượn sách, đăng bình luận
+
+-------------------------------------------------------------------------------
+
+Chức năng	    Quyền hạn	        Mô tả
+
+Người dùng	    USER_MANAGE	        Quản lý người dùng (Admin)
+                USER_VIEW	        Xem danh sách người dùng
+
+Nhóm quyền	    ROLE_MANAGE	        Quản lý vai trò
+                ROLE_VIEW	        Xem danh sách vai trò
+
+Quyền	        PERMISSION_MANAGE	Quản lý quyền
+                PERMISSION_VIEW	    Xem danh sách quyền
+
+Thể loại sách	GENRE_MANAGE	    Quản lý thể loại sách
+                GENRE_VIEW	Xem     danh sách thể loại
+
+Sách	        BOOK_MANAGE	        Quản lý sách
+                BOOK_VIEW	        Xem danh sách sách
+
+Mượn sách	    BORROW_MANAGE	    Quản lý mượn sách (Admin, Thủ thư)
+                BORROW_VIEW	Xem     danh sách mượn sách
+
+Bình luận	    COMMENT_MANAGE	    Quản lý bình luận (Admin)
+                COMMENT_VIEW_ALL	Xem tất cả bình luận
+                COMMENT_EDIT_OWN	Chỉnh sửa bình luận của chính mình
+                COMMENT_DELETE_OWN	Xóa bình luận của chính mình
+
+Bài viết	    POST_MANAGE	        Quản lý bài viết (Admin)
+                POST_VIEW_ALL	    Xem tất cả bài viết
+                POST_EDIT_OWN	    Chỉnh sửa bài viết của chính mình
+                POST_DELETE_OWN	    Xóa bài viết của chính mình
+
+Xuất Excel	    EXPORT_DATA	        Xuất dữ liệu ra file Excel
+
+-------------------------------------------------------------------------------
+
+Role	    Permissions
+ADMIN	    USER_MANAGE, ROLE_MANAGE, PERMISSION_MANAGE, GENRE_MANAGE, BOOK_MANAGE, BORROW_MANAGE,
+            COMMENT_MANAGE, POST_MANAGE, EXPORT_DATA
+LIBRARIAN	BOOK_MANAGE, BORROW_MANAGE, BORROW_VIEW, GENRE_VIEW, USER_VIEW, COMMENT_VIEW_ALL, POST_VIEW_ALL
+MEMBER	    BOOK_VIEW, BORROW_VIEW, COMMENT_EDIT_OWN, COMMENT_DELETE_OWN, POST_EDIT_OWN, POST_DELETE_OWN
