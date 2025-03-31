@@ -9,6 +9,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.dto.request.UserRequest;
 import viettelsoftware.intern.dto.request.UserUpdateRequest;
@@ -25,6 +26,7 @@ public class UserController {
     UserServiceImpl userServiceImpl;
 
     @PostMapping()
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
     ApiResponse<UserResponse> create(@RequestBody UserRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userServiceImpl.create(request))
@@ -32,11 +34,13 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
     ApiResponse<UserResponse> update(@PathVariable String userId, @RequestBody UserUpdateRequest request){
         return ApiResponse.<UserResponse>builder().result(userServiceImpl.update(userId, request)).build();
     }
 
     @DeleteMapping("/{userId}")
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
     ApiResponse<Void> delete(@PathVariable String userId) {
         userServiceImpl.delete(userId);
         return ApiResponse.<Void>builder()
@@ -45,6 +49,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
+    @PreAuthorize("hasAuthority('USER_VIEW')")
     ApiResponse<UserResponse> getUser(@PathVariable String userId) {
         return ApiResponse.<UserResponse>builder()
                 .result(userServiceImpl.getUser(userId))
@@ -52,6 +57,7 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('USER_VIEW')")
     ApiResponse<Page<UserResponse>> getAllUser(@PageableDefault(size = 5) Pageable pageable) {
         return ApiResponse.<Page<UserResponse>>builder()
                 .result(userServiceImpl.getAllUser(pageable))
@@ -59,6 +65,7 @@ public class UserController {
     }
 
     @GetMapping("/export/excel")
+    @PreAuthorize("hasAuthority('EXPORT_DATA')")
     public ResponseEntity<byte[]> exportUsersToExcel() {
         byte[] excelData = userServiceImpl.exportUsersToExcel();
 

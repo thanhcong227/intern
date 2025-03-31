@@ -9,11 +9,11 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.dto.request.GenreRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.GenreResponse;
-import viettelsoftware.intern.entity.GenreEntity;
 import viettelsoftware.intern.service.impl.GenreServiceImpl;
 
 @RestController
@@ -24,6 +24,7 @@ public class GenreController {
     GenreServiceImpl genreServiceImpl;
 
     @PostMapping()
+    @PreAuthorize("hasAuthority('GENRE_MANAGE')")
     ApiResponse<GenreResponse> create(@RequestBody GenreRequest request) {
         return ApiResponse.<GenreResponse>builder()
                 .result(genreServiceImpl.create(request))
@@ -31,6 +32,7 @@ public class GenreController {
     }
 
     @PutMapping("/{genreId}")
+    @PreAuthorize("hasAuthority('GENRE_MANAGE')")
     ApiResponse<GenreResponse> update(@PathVariable String genreId, @RequestBody GenreRequest request) {
         return ApiResponse.<GenreResponse>builder()
                 .result(genreServiceImpl.update(genreId, request))
@@ -38,6 +40,7 @@ public class GenreController {
     }
 
     @DeleteMapping("/{genreId}")
+    @PreAuthorize("hasAuthority('GENRE_MANAGE')")
     ApiResponse<Void> delete(@PathVariable String genreId) {
         genreServiceImpl.delete(genreId);
         return ApiResponse.<Void>builder()
@@ -46,6 +49,7 @@ public class GenreController {
     }
 
     @GetMapping("/{genreId}")
+    @PreAuthorize("hasAuthority('GENRE_VIEW')")
     ApiResponse<GenreResponse> getGenre(@PathVariable String genreId) {
         return ApiResponse.<GenreResponse>builder()
                 .result(genreServiceImpl.getGenre(genreId))
@@ -53,6 +57,7 @@ public class GenreController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('GENRE_VIEW')")
     ApiResponse<Page<GenreResponse>> getAllGenres(@PageableDefault(size = 5) Pageable pageable) {
         return ApiResponse.<Page<GenreResponse>>builder()
                 .result(genreServiceImpl.getAllGenres(pageable))
@@ -60,6 +65,7 @@ public class GenreController {
     }
 
     @GetMapping("/export/excel")
+    @PreAuthorize("hasAuthority('EXPORT_DATA')")
     public ResponseEntity<byte[]> exportGenresToExcel() {
         byte[] excelData = genreServiceImpl.exportGenresToExcel();
 

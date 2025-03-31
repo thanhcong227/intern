@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.dto.request.BorrowingBookRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
@@ -23,6 +24,7 @@ public class BorrowingBookController {
     BorrowingBookServiceImpl borrowingBookServiceImpl;
 
     @PostMapping("/{borrowingBookId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
     ApiResponse<BorrowingBookResponse> create(@PathVariable String borrowingBookId, @RequestBody List<BorrowingBookRequest> requests) {
         return ApiResponse.<BorrowingBookResponse>builder()
                 .result(borrowingBookServiceImpl.create(borrowingBookId, requests))
@@ -30,6 +32,7 @@ public class BorrowingBookController {
     }
 
     @PutMapping("/{borrowingBookId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
     public ApiResponse<BorrowingBookResponse> updateBorrowingBook(
             @PathVariable String borrowingBookId,
             @RequestBody BorrowingBookRequest request) {
@@ -39,6 +42,7 @@ public class BorrowingBookController {
     }
 
     @DeleteMapping("/{borrowingBookId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
     ApiResponse<Void> delete(@PathVariable String borrowingBookId) {
         borrowingBookServiceImpl.delete(borrowingBookId);
         return ApiResponse.<Void>builder()
@@ -47,6 +51,7 @@ public class BorrowingBookController {
     }
 
     @GetMapping("/{borrowingBookId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
     ApiResponse<BorrowingBookResponse> getBorrowing(@PathVariable String borrowingBookId) {
         return ApiResponse.<BorrowingBookResponse>builder()
                 .result(borrowingBookServiceImpl.getBorrowingBook(borrowingBookId))
@@ -54,6 +59,7 @@ public class BorrowingBookController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
     ApiResponse<Page<BorrowingBookResponse>> getAllBorrowing(@PageableDefault(size = 5) Pageable pageable) {
         return ApiResponse.<Page<BorrowingBookResponse>>builder()
                 .result(borrowingBookServiceImpl.getAllBorrowingBooks(pageable))

@@ -9,6 +9,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
@@ -25,6 +26,7 @@ public class BorrowingController {
     BorrowingServiceImpl borrowingServiceImpl;
 
     @PostMapping()
+    @PreAuthorize("hasAuthority('BORROWING_MANAGE')")
     ApiResponse<BorrowingResponse> create(@RequestParam String userId, @RequestBody Set<String> bookIds) {
         return ApiResponse.<BorrowingResponse>builder()
                 .result(borrowingServiceImpl.create(userId, bookIds))
@@ -32,6 +34,7 @@ public class BorrowingController {
     }
 
     @PutMapping("/{borrowingId}")
+    @PreAuthorize("hasAuthority('BORROWING_MANAGE')")
     ApiResponse<BorrowingResponse> update(@PathVariable String borrowingId, @RequestBody Set<String> bookIds) {
         return ApiResponse.<BorrowingResponse>builder()
                 .result(borrowingServiceImpl.update(borrowingId, bookIds))
@@ -39,6 +42,7 @@ public class BorrowingController {
     }
 
     @DeleteMapping("/{borrowingId}")
+    @PreAuthorize("hasAuthority('BORROWING_MANAGE')")
     ApiResponse<Void> delete(@PathVariable String borrowingId) {
         borrowingServiceImpl.delete(borrowingId);
         return ApiResponse.<Void>builder()
@@ -47,6 +51,7 @@ public class BorrowingController {
     }
 
     @GetMapping("/{borrowingId}")
+    @PreAuthorize("hasAuthority('BORROWING_VIEW')")
     ApiResponse<BorrowingResponse> getBorrowing(@PathVariable String borrowingId) {
         return ApiResponse.<BorrowingResponse>builder()
                 .result(borrowingServiceImpl.getBorrowing(borrowingId))
@@ -54,6 +59,7 @@ public class BorrowingController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('BORROWING_VIEW')")
     ApiResponse<Page<BorrowingResponse>> getAllBorrowing(@PageableDefault(size = 5) Pageable pageable) {
         return ApiResponse.<Page<BorrowingResponse>>builder()
                 .result(borrowingServiceImpl.getAllBorrowing(pageable))
@@ -61,6 +67,7 @@ public class BorrowingController {
     }
 
     @GetMapping("/export/excel")
+    @PreAuthorize("hasAuthority('EXPORT_DATA')")
     public ResponseEntity<byte[]> exportBorrowingsToExcel() {
         byte[] excelData = borrowingServiceImpl.exportBorrowingsToExcel();
 

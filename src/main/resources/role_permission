@@ -20,13 +20,13 @@ Quyền	        PERMISSION_MANAGE	Quản lý quyền
                 PERMISSION_VIEW	    Xem danh sách quyền
 
 Thể loại sách	GENRE_MANAGE	    Quản lý thể loại sách
-                GENRE_VIEW	Xem     danh sách thể loại
+                GENRE_VIEW	        Xem danh sách thể loại
 
 Sách	        BOOK_MANAGE	        Quản lý sách
                 BOOK_VIEW	        Xem danh sách sách
 
 Mượn sách	    BORROW_MANAGE	    Quản lý mượn sách (Admin, Thủ thư)
-                BORROW_VIEW	Xem     danh sách mượn sách
+                BORROW_VIEW	        Xem danh sách mượn sách
 
 Bình luận	    COMMENT_MANAGE	    Quản lý bình luận (Admin)
                 COMMENT_VIEW_ALL	Xem tất cả bình luận

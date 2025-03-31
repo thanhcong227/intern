@@ -9,6 +9,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.dto.request.BookRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
@@ -24,6 +25,7 @@ public class BookController {
     BookServiceImpl bookServiceImpl;
 
     @PostMapping()
+    @PreAuthorize("hasAuthority('BOOK_MANAGE')")
     ApiResponse<BookResponse> create(@RequestBody BookRequest request) {
         return ApiResponse.<BookResponse>builder()
                 .result(bookServiceImpl.create(request))
@@ -31,6 +33,7 @@ public class BookController {
     }
 
     @PutMapping("/{bookId}")
+    @PreAuthorize("hasAuthority('BOOK_MANAGE')")
     ApiResponse<BookResponse> update(@PathVariable String bookId, @RequestBody BookRequest request) {
         return ApiResponse.<BookResponse>builder()
                 .result(bookServiceImpl.update(bookId, request))
@@ -38,6 +41,7 @@ public class BookController {
     }
 
     @DeleteMapping("/{bookId}")
+    @PreAuthorize("hasAuthority('BOOK_MANAGE')")
     ApiResponse<Void> delete(@PathVariable String bookId) {
         bookServiceImpl.delete(bookId);
         return ApiResponse.<Void>builder()
@@ -46,6 +50,7 @@ public class BookController {
     }
 
     @GetMapping("/{bookId}")
+    @PreAuthorize("hasAuthority('BOOK_VIEW')")
     ApiResponse<BookResponse> getBook(@PathVariable String bookId) {
         return ApiResponse.<BookResponse>builder()
                 .result(bookServiceImpl.getBook(bookId))
@@ -53,6 +58,7 @@ public class BookController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('BOOK_VIEW')")
     ApiResponse<Page<BookResponse>> getAllBook(@PageableDefault(size = 5) Pageable pageable) {
         return ApiResponse.<Page<BookResponse>>builder()
                 .result(bookServiceImpl.getAllBooks(pageable))
@@ -60,6 +66,7 @@ public class BookController {
     }
 
     @GetMapping("/export/excel")
+    @PreAuthorize("hasAuthority('EXPORT_DATA')")
     public ResponseEntity<byte[]> exportBooksToExcel() {
         byte[] excelData = bookServiceImpl.exportBooksToExcel();
 

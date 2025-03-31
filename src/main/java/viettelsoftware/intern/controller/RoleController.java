@@ -9,6 +9,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.dto.request.RoleRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
@@ -24,6 +25,7 @@ public class RoleController {
     RoleServiceImpl roleServiceImpl;
 
     @PostMapping()
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     ApiResponse<RoleResponse> create(@RequestBody RoleRequest request) {
         return ApiResponse.<RoleResponse>builder()
                 .result(roleServiceImpl.create(request))
@@ -31,6 +33,7 @@ public class RoleController {
     }
 
     @PutMapping("/{roleId}")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     ApiResponse<RoleResponse> update(@PathVariable String roleId, @RequestBody RoleRequest request) {
         return ApiResponse.<RoleResponse>builder()
                 .result(roleServiceImpl.update(roleId, request))
@@ -38,6 +41,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     ApiResponse<Void> delete(@PathVariable String roleId) {
         roleServiceImpl.delete(roleId);
         return ApiResponse.<Void>builder()
@@ -46,6 +50,7 @@ public class RoleController {
     }
 
     @GetMapping("/{roleId}")
+    @PreAuthorize("hasAuthority('ROLE_VIEW')")
     ApiResponse<RoleResponse> getRole(@PathVariable String roleId) {
         return ApiResponse.<RoleResponse>builder()
                 .result(roleServiceImpl.getRole(roleId))
@@ -53,6 +58,7 @@ public class RoleController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('ROLE_VIEW')")
     ApiResponse<Page<RoleResponse>> getAllRole(@PageableDefault(size = 5) Pageable pageable) {
         return ApiResponse.<Page<RoleResponse>>builder()
                 .result(roleServiceImpl.getAllRole(pageable))
@@ -60,6 +66,7 @@ public class RoleController {
     }
 
     @GetMapping("/export/excel")
+    @PreAuthorize("hasAuthority('EXPORT_DATA')")
     public ResponseEntity<byte[]> exportRolesToExcel() {
         byte[] excelData = roleServiceImpl.exportRolesToExcel();
 

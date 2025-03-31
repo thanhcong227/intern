@@ -9,6 +9,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.dto.request.PermissionRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
@@ -24,6 +25,7 @@ public class PermissionController {
     PermissionServiceImpl permissionServiceImpl;
 
     @PostMapping()
+    @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
     ApiResponse<PermissionResponse> create(@RequestBody PermissionRequest request) {
         return ApiResponse.<PermissionResponse>builder()
                 .result(permissionServiceImpl.create(request))
@@ -31,6 +33,7 @@ public class PermissionController {
     }
 
     @PutMapping("/{permissionId}")
+    @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
     ApiResponse<PermissionResponse> update(@PathVariable String permissionId, @RequestBody PermissionRequest request) {
         return ApiResponse.<PermissionResponse>builder()
                 .result(permissionServiceImpl.update(permissionId, request))
@@ -38,6 +41,7 @@ public class PermissionController {
     }
 
     @DeleteMapping("/{permissionId}")
+    @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
     ApiResponse<Void> delete(@PathVariable String permissionId) {
         permissionServiceImpl.delete(permissionId);
         return ApiResponse.<Void>builder()
@@ -46,6 +50,7 @@ public class PermissionController {
     }
 
     @GetMapping("/{permissionId}")
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
     ApiResponse<PermissionResponse> getPermission(@PathVariable String permissionId) {
         return ApiResponse.<PermissionResponse>builder()
                 .result(permissionServiceImpl.getPermission(permissionId))
@@ -53,6 +58,7 @@ public class PermissionController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
     ApiResponse<Page<PermissionResponse>> getAllPermission(@PageableDefault(size = 5) Pageable pageable) {
         return ApiResponse.<Page<PermissionResponse>>builder()
                 .result(permissionServiceImpl.getAllPermission(pageable))
@@ -60,6 +66,7 @@ public class PermissionController {
     }
 
     @GetMapping("/export/excel")
+    @PreAuthorize("hasAuthority('EXPORT_DATA')")
     public ResponseEntity<byte[]> exportPermissionsToExcel() {
         byte[] excelData = permissionServiceImpl.exportPermissionsToExcel();
 

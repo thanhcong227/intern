@@ -21,11 +21,26 @@ import viettelsoftware.intern.config.Jwt.JwtFilter;
 import viettelsoftware.intern.config.Jwt.JwtUtil;
 import viettelsoftware.intern.repository.UserRepository;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Configuration
 public class SecurityConfiguration {
 
-    private static final String[] PUBLIC_ENDPOINT = {"/auth/**"};
-    private static final String[] PRIVATE_ENDPOINT = {"/user/**", "/role/**", "/permission/**", "/borrowing/**", "/book/**", "/post/**", "/comment/**"};
+    private static final Map<String, String[]> API_PERMISSIONS = new HashMap<>() {{
+        put("/user/**", new String[]{"USER_VIEW", "USER_MANAGE"});
+        put("/role/**", new String[]{"ROLE_VIEW", "ROLE_MANAGE"});
+        put("/permission/**", new String[]{"PERMISSION_VIEW", "PERMISSION_MANAGE"});
+        put("/book/**", new String[]{"BOOK_VIEW", "BOOK_MANAGE"});
+        put("/borrowing/**", new String[]{"BORROW_VIEW", "BORROW_MANAGE"});
+        put("/post/**", new String[]{"POST_VIEW_ALL", "POST_MANAGE"});
+        put("/comment/**", new String[]{"COMMENT_VIEW_ALL", "COMMENT_MANAGE", "COMMENT_EDIT_OWN", "COMMENT_DELETE_OWN"});
+        put("/genre/**", new String[]{"GENRE_VIEW", "GENRE_MANAGE"});
+        put("/borrowing-book/**", new String[]{"BORROW_MANAGE"});
+        put("/export/excel/**", new String[]{"EXPORT_DATA"}); // Tất cả API export
+    }};
+
+
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
@@ -41,9 +56,11 @@ public class SecurityConfiguration {
         http.cors(
                         c -> c.configurationSource(corsConfigurationSource()))
                 .csrf(c -> c.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/user/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/auth/**").permitAll();
+                    API_PERMISSIONS.forEach((api, permission) -> auth.requestMatchers(api).hasAnyAuthority(permission));
+                    auth.anyRequest().authenticated();
+                        }
                 )
                 .userDetailsService(customUserDetailsService)
                 .formLogin(AbstractHttpConfigurer::disable)
