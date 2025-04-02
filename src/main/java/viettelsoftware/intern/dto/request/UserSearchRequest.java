@@ -10,7 +10,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserUpdateRequest {
+public class UserSearchRequest {
 
     String userId;
     String username;
@@ -18,5 +18,4 @@ public class UserUpdateRequest {
     String email;
     String phone;
     String address;
-    Set<RoleRequest> roles;
 }

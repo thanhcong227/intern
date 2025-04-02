@@ -26,6 +26,8 @@ public class BookEntity {
     int year;
     LocalDate createdAt;
     LocalDate updatedAt;
+    int quantity;
+    int availableQuantity;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     Set<BorrowingBook> borrowingBooks;

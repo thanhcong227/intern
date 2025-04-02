@@ -34,6 +34,6 @@ public class RoleEntity {
 
     @Override
     public String toString() {
-        return "RoleEntity{id=" + roleId + ", name='" + name + "'}";
+        return name;
     }
 }

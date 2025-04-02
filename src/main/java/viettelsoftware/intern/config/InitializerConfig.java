@@ -15,7 +15,6 @@ import java.util.Set;
 
 @Configuration
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-@RequiredArgsConstructor
 @Slf4j
 public class InitializerConfig {
 
@@ -24,6 +23,14 @@ public class InitializerConfig {
     PasswordEncoder passwordEncoder;
     GenreRepository genreRepository;
     BookRepository bookRepository;
+
+    public InitializerConfig(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, GenreRepository genreRepository, BookRepository bookRepository) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.genreRepository = genreRepository;
+        this.bookRepository = bookRepository;
+    }
 
     @Bean
     public ApplicationRunner initializer() {

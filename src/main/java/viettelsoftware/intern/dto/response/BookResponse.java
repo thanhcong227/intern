@@ -22,6 +22,8 @@ public class BookResponse {
     String title;
     String author;
     int year;
+    int quantity;
+    int availableQuantity;
     LocalDate createdAt;
     LocalDate updatedAt;
 

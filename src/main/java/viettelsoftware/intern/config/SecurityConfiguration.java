@@ -2,16 +2,13 @@ package viettelsoftware.intern.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -40,34 +37,41 @@ public class SecurityConfiguration {
         put("/export/excel/**", new String[]{"EXPORT_DATA"}); // Tất cả API export
     }};
 
+    private static final String[] AUTH_WHITELIST = {
+            "/api/auth/**",
+            "/v3/api-docs/**",
+            "/v3/api-docs.yaml",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
+    };
 
-    private final CustomUserDetailsService customUserDetailsService;
-    private final JwtUtil jwtUtil;
+
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
-    SecurityConfiguration(CustomUserDetailsService customUserDetailsService, JwtUtil jwtUtil, UserRepository userRepository) {
-        this.customUserDetailsService = customUserDetailsService;
-        this.jwtUtil = jwtUtil;
+    SecurityConfiguration(UserRepository userRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(
-                        c -> c.configurationSource(corsConfigurationSource()))
-                .csrf(c -> c.disable())
-                .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/auth/**").permitAll();
-                    API_PERMISSIONS.forEach((api, permission) -> auth.requestMatchers(api).hasAnyAuthority(permission));
+        http.cors(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth ->
+                {
+                    auth.requestMatchers(AUTH_WHITELIST).permitAll();
+
+                    API_PERMISSIONS.forEach((api, permission) ->
+                            auth.requestMatchers(api).hasAnyAuthority(permission)
+                    );
+
                     auth.anyRequest().authenticated();
-                        }
-                )
-                .userDetailsService(customUserDetailsService)
-                .formLogin(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .logout(Customizer.withDefaults());
+                })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.addFilterBefore(new JwtFilter(jwtUtil, userRepository), UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 

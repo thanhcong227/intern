@@ -1,17 +1,16 @@
-package viettelsoftware.intern.dto.response;
+package viettelsoftware.intern.dto.request;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-
 @Getter
 @Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Builder
-public class LoginResponse {
+public class ForgotPasswordRequest {
 
-    String token;
-    boolean authenticated;
+    String email;
+
 }

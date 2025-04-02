@@ -17,6 +17,7 @@ import viettelsoftware.intern.constant.ErrorCode;
 import viettelsoftware.intern.entity.UserEntity;
 import viettelsoftware.intern.exception.AppException;
 import viettelsoftware.intern.repository.UserRepository;
+import viettelsoftware.intern.service.impl.AuthServiceImpl;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = getTokenFromRequest(request);
-        if (StringUtils.hasText(token) && !jwtUtil.isTokenExpired(token)) {
+        if (StringUtils.hasText(token) && jwtUtil.isTokenExpired(token)) {
             String username = jwtUtil.extractUsername(token);
             UserEntity userEntity = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             if (userEntity != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -51,7 +52,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 } else {
                     log.info("rolesClaim: {}", rolesClaim);
                 }
-                Collection<? extends GrantedAuthority> authorities = new ArrayList<>();
+                Collection<? extends GrantedAuthority> authorities;
                 authorities = Arrays.stream(rolesClaim.toString().split(" "))
                         .filter(auth -> !auth.trim().isEmpty())
                         .map(SimpleGrantedAuthority::new)

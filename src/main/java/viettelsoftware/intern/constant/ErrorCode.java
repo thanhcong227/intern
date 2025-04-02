@@ -23,7 +23,15 @@ public enum ErrorCode {
     GENRE_NOT_FOUND(116,"Genre not found"),
     BORROWING_BOOK_CREATION_FAILED(118,"Borrowing book creation failed"),
     BORROWING_BOOK_NOT_FOUND(119,"Borrowing book not found"),
+    FILE_PROCESSING_ERROR(120,"Failed to process the file"),
     UNKNOWN(555, "UNKNOWN"),
+    INVALID_FILE_FORMAT(121, "Invalid file format. Only .xlsx and .xls files are allowed"),
+    DATABASE_ERROR(123, "Database error"),
+    INVALID_EMAIL(124, "Invalid email"),
+    TOKEN_INVALID(125, "Token invalid"),
+    TOKEN_EXPIRED(126, "Token expired"),
+    INVALID_FILE(122, "File name is null"),
+
     ;
 
     final int code;
