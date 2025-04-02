@@ -43,7 +43,14 @@ public class BorrowingBookServiceImpl implements BorrowingBookService {
         Set<BorrowingBook> borrowingBooks = requests.stream().map(request -> {
             BookEntity book = bookRepository.findById(request.getBookId())
                     .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
-
+            if (request.getQuantity() < 0) {
+                throw new AppException(ErrorCode.BOOK_QUANTITY_INVALID);
+            } else if (book.getQuantity() < request.getQuantity()) {
+                throw new AppException(ErrorCode.BOOK_NOT_ENOUGH);
+            } else {
+                book.setQuantity(book.getQuantity() - request.getQuantity());
+                bookRepository.save(book);
+            }
             return BorrowingBook.builder()
                     .borrowing(borrowing)
                     .book(book)
@@ -64,6 +71,17 @@ public class BorrowingBookServiceImpl implements BorrowingBookService {
         BorrowingBook borrowingBook = borrowingBookRepository.findById(borrowingBookId)
                 .orElseThrow(() -> new AppException(ErrorCode.BORROWING_NOT_FOUND));
 
+        if (request.getQuantity() < 0) {
+            throw new AppException(ErrorCode.BOOK_QUANTITY_INVALID);
+        } else if (request.getQuantity() == 0) {
+            borrowingBookRepository.deleteById(borrowingBookId);
+            return borrowingBookMapper.toBorrowingBookResponse(borrowingBook);
+        } else if (request.getQuantity() > borrowingBook.getBook().getQuantity()) {
+            throw new AppException(ErrorCode.BOOK_NOT_ENOUGH);
+        }
+        BookEntity book = borrowingBook.getBook();
+        book.setQuantity(book.getQuantity() + borrowingBook.getQuantity() - request.getQuantity());
+        bookRepository.save(book);
         borrowingBook.setQuantity(request.getQuantity());
         borrowingBookRepository.save(borrowingBook);
 

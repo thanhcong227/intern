@@ -30,6 +30,8 @@ public enum ErrorCode {
     INVALID_EMAIL(124, "Invalid email"),
     TOKEN_INVALID(125, "Token invalid"),
     TOKEN_EXPIRED(126, "Token expired"),
+    BOOK_NOT_ENOUGH(127, "Book not enough"),
+    BOOK_QUANTITY_INVALID(128, "Book quantity invalid"),
     INVALID_FILE(122, "File name is null"),
 
     ;
