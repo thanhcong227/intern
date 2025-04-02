@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import viettelsoftware.intern.config.response.GeneralResponse;
 import viettelsoftware.intern.constant.ErrorCode;
 import viettelsoftware.intern.dto.response.ApiResponse;
 
@@ -40,5 +41,15 @@ public class GlobalExcepionHandler {
         apiResponse.setMessage(errorCode.getMessages());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(apiResponse);
+    }
+
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<GeneralResponse<Object>> handlingCustomException(CustomException e) {
+        log.error("CustomException: {}", e.getMessage());
+
+        GeneralResponse<Object> response = new GeneralResponse<>(null);
+        response.setStatus(e.getResponseStatus());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }

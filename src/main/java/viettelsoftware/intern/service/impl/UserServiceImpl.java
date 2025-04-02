@@ -1,6 +1,5 @@
 package viettelsoftware.intern.service.impl;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -13,14 +12,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.UserRequest;
 import viettelsoftware.intern.dto.request.UserSearchRequest;
 import viettelsoftware.intern.dto.request.UserUpdateRequest;
 import viettelsoftware.intern.dto.response.UserResponse;
 import viettelsoftware.intern.entity.RoleEntity;
 import viettelsoftware.intern.entity.UserEntity;
-import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.repository.RoleRepository;
 import viettelsoftware.intern.repository.UserRepository;
 
@@ -30,7 +29,6 @@ import viettelsoftware.intern.service.UserService;
 import viettelsoftware.intern.util.ConversionUtil;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -51,13 +49,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse create(UserRequest request) {
         if (userRepository.existsByUsername(request.getUsername()))
-            throw new AppException(ErrorCode.USER_EXISTED);
-
+            throw new CustomException(ResponseStatusCodeEnum.USER_EXISTED.getCode());
         UserEntity userEntity = ConversionUtil.convertObject(request, x -> modelMapper.map(x, UserEntity.class));
         userEntity.setPassword(passwordEncoder.encode(request.getPassword()));
         Set<RoleEntity> roles = request.getRoles().stream()
                 .map(role -> roleRepository.findByName(role.getName())
-                        .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND.getCode())))
                 .collect(Collectors.toSet());
 
         userEntity.setRoles(roles);
@@ -69,11 +66,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse update(UserUpdateRequest request) {
         UserEntity userEntity = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode()));
 
         if (request.getUsername() != null) {
             if (!userEntity.getUsername().equals(request.getUsername()) && userRepository.existsByUsername(request.getUsername())) {
-                throw new AppException(ErrorCode.USER_EXISTED);
+                throw new CustomException(ResponseStatusCodeEnum.USER_EXISTED.getCode());
             }
             userEntity.setUsername(request.getUsername());
         }
@@ -93,7 +90,7 @@ public class UserServiceImpl implements UserService {
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
             Set<RoleEntity> roles = request.getRoles().stream()
                     .map(role -> roleRepository.findByName(role.getName())
-                            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+                            .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND.getCode())))
                     .collect(Collectors.toSet());
             userEntity.setRoles(roles);
         }
@@ -108,7 +105,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void delete(String userId) {
         if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException(ErrorCode.USER_NOT_FOUND.getMessages());
+            throw new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode());
         }
         userRepository.deleteById(userId);
     }
@@ -116,7 +113,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse getUser(String userId) {
         UserEntity userEntity = userRepository.findById(userId).orElseThrow(
-                () -> new AppException(ErrorCode.USER_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode()));
         return ConversionUtil.convertObject(userEntity, x -> modelMapper.map(x, UserResponse.class));
     }
 
@@ -193,7 +190,7 @@ public class UserServiceImpl implements UserService {
                 workbook = new HSSFWorkbook(inputStream);
             } else {
                 // Trường hợp này không nên xảy ra nếu validateFile chạy đúng
-                throw new AppException(ErrorCode.INVALID_FILE_FORMAT);
+                throw new CustomException(ResponseStatusCodeEnum.INVALID_FILE_FORMAT.getCode());
             }
 
             Sheet sheet = workbook.getSheetAt(0);
@@ -211,7 +208,7 @@ public class UserServiceImpl implements UserService {
             }
 
             if (errorColumnIndex == -1) {
-                throw new AppException(ErrorCode.FILE_PROCESSING_ERROR);
+                throw new CustomException(ResponseStatusCodeEnum.FILE_PROCESSING_ERROR.getCode());
             }
 
 
@@ -286,7 +283,7 @@ public class UserServiceImpl implements UserService {
 
                     Set<RoleEntity> roles = new HashSet<>();
                     RoleEntity userRole = roleRepository.findByName("MEMBER")
-                            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                            .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND.getCode()));
                     roles.add(userRole);
                     user.setRoles(roles);
                     try {
@@ -307,7 +304,7 @@ public class UserServiceImpl implements UserService {
                     log.info("Saved {} valid users to the database.", validUsersToSave.size());
                 } catch (Exception e) {
                     log.error("Error bulk saving users: {}", e.getMessage());
-                    throw new AppException(ErrorCode.DATABASE_ERROR);
+                    throw new CustomException(ResponseStatusCodeEnum.DATABASE_ERROR.getCode());
                 }
             }
 
@@ -318,16 +315,12 @@ public class UserServiceImpl implements UserService {
             }
 
         } catch (IOException e) {
-            log.error("Error processing Excel file: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.FILE_PROCESSING_ERROR);
-        } catch (AppException e) { // Bắt lại AppException để log và re-throw
-            log.error("Application error during import: {} - {}", e.getErrorCode().getMessages(), e.getMessage(), e);
-            throw e; // Re-throw AppException
+            throw new CustomException(ResponseStatusCodeEnum.FILE_PROCESSING_ERROR.getCode());
+        } catch (CustomException e) { // Bắt lại CustomException để log và re-throw
+            throw e; // Re-throw CustomException
         } catch (Exception e) { // Bắt các lỗi không mong muốn khác
-            log.error("Unexpected error during Excel import: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.UNKNOWN);
+            throw new CustomException(ResponseStatusCodeEnum.UNKNOWN.getCode());
         } finally {
-            // Đóng workbook và input stream
             if (workbook != null) {
                 try {
                     workbook.close();
@@ -345,29 +338,27 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    // Hàm kiểm tra file hợp lệ (giữ nguyên hoặc cải thiện)
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_FILE);
+            throw new CustomException(ResponseStatusCodeEnum.INVALID_FILE.getCode());
         }
 
         String filename = file.getOriginalFilename();
         if (filename == null) {
-            throw new AppException(ErrorCode.INVALID_FILE);
+            throw new CustomException(ResponseStatusCodeEnum.INVALID_FILE.getCode());
         }
 
         String fileExtension = FilenameUtils.getExtension(filename.toLowerCase()); // Convert to lower case
         if (!"xlsx".equals(fileExtension) && !"xls".equals(fileExtension)) {
-            throw new AppException(ErrorCode.INVALID_FILE_FORMAT);
+            throw new CustomException(ResponseStatusCodeEnum.INVALID_FILE_FORMAT.getCode());
         }
         // Optional: Check file size
         // long maxSize = 5 * 1024 * 1024; // 5MB example
         // if (file.getSize() > maxSize) {
-        //    throw new AppException(ErrorCode.FILE_TOO_LARGE, "File size exceeds the limit.");
+        //    throw new CustomException(ResponseStatusCodeEnum.FILE_TOO_LARGE, "File size exceeds the limit.");
         // }
     }
 
-    // Hàm kiểm tra hàng trống (ví dụ)
     private boolean isRowEmpty(Row row, int lastDataColumnIndex) {
         if (row == null) {
             return true;
@@ -382,7 +373,6 @@ public class UserServiceImpl implements UserService {
         return true; // Tất cả cell đều trống
     }
 
-    // Hàm kiểm tra định dạng email (ví dụ đơn giản)
     private boolean isValidEmailFormat(String email) {
         if (email == null) return false;
         // Một regex đơn giản, có thể cần phức tạp hơn cho các trường hợp đặc biệt
@@ -418,7 +408,7 @@ public class UserServiceImpl implements UserService {
                 searchRequest.getEmail(), searchRequest.getFullName(),
                 searchRequest.getPhone(), searchRequest.getAddress());
         if (users.isEmpty()) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode());
         }
         return ConversionUtil.convertList(users, x -> modelMapper.map(x, UserResponse.class));
     }

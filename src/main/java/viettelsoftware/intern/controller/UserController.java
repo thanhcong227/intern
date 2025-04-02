@@ -2,10 +2,8 @@ package viettelsoftware.intern.controller;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FilenameUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -16,7 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.UserRequest;
 import viettelsoftware.intern.dto.request.UserSearchRequest;
 import viettelsoftware.intern.dto.request.UserUpdateRequest;
@@ -25,10 +24,8 @@ import viettelsoftware.intern.dto.response.UserResponse;
 import viettelsoftware.intern.exception.AppException;
 import viettelsoftware.intern.service.impl.UserServiceImpl;
 
-import java.io.IOException;
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -38,61 +35,52 @@ import java.util.Map;
 public class UserController {
 
     UserServiceImpl userServiceImpl;
+    ResponseFactory responseFactory;
 
     @PostMapping()
     @PreAuthorize("hasAuthority('USER_MANAGE')")
-    ApiResponse<UserResponse> create(@RequestBody UserRequest request) {
-        return ApiResponse.<UserResponse>builder()
-                .result(userServiceImpl.create(request))
-                .build();
+    ResponseEntity<GeneralResponse<UserResponse>> create(@RequestBody UserRequest request) {
+        return responseFactory.success(userServiceImpl.create(request));
     }
 
     @PutMapping()
     @PreAuthorize("hasAuthority('USER_MANAGE')")
-    ApiResponse<UserResponse> update(@RequestBody UserUpdateRequest request){
-        return ApiResponse.<UserResponse>builder().result(userServiceImpl.update(request)).build();
+    ResponseEntity<GeneralResponse<UserResponse>> update(@RequestBody UserUpdateRequest request){
+        return responseFactory.success(userServiceImpl.update(request));
     }
 
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasAuthority('USER_MANAGE')")
-    ApiResponse<Void> delete(@PathVariable String userId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String userId) {
         userServiceImpl.delete(userId);
-        return ApiResponse.<Void>builder()
-                .message("User deleted successfully")
-                .build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/{userId}")
     @PreAuthorize("hasAuthority('USER_VIEW')")
-    ApiResponse<UserResponse> getUser(@PathVariable String userId) {
-        return ApiResponse.<UserResponse>builder()
-                .result(userServiceImpl.getUser(userId))
-                .build();
+    ResponseEntity<GeneralResponse<UserResponse>> getUser(@PathVariable String userId) {
+        return responseFactory.success(userServiceImpl.getUser(userId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('USER_VIEW')")
-    ApiResponse<Page<UserResponse>> getAllUser(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<UserResponse>>builder()
-                .result(userServiceImpl.getAllUser(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<UserResponse>>> getAllUser(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(userServiceImpl.getAllUser(pageable));
     }
 
     @GetMapping("/export/excel")
     @PreAuthorize("hasAuthority('EXPORT_DATA')")
-    public ResponseEntity<byte[]> exportUsersToExcel(@RequestParam(value = "fields", required = false) List<String> fields) {
+    public ResponseEntity<GeneralResponse<byte[]>> exportUsersToExcel(@RequestParam(value = "fields", required = false) List<String> fields) {
         byte[] excelData = userServiceImpl.exportUsersToExcel(fields);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Disposition", "attachment; filename=users.xlsx");
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .headers(headers)
-                .body(excelData);
+        return responseFactory.successWithHeader(headers, excelData);
     }
 
     @PostMapping("/import")
-    public ApiResponse<?> importUsersAndGetReport(@RequestParam("file") MultipartFile file) {
+    @PreAuthorize("hasAuthority('USER_IMPORT')")
+    public ResponseEntity<byte[]> importUsersAndGetReport(@RequestParam("file") MultipartFile file) {
         try {
             byte[] reportBytes = userServiceImpl.importUsersFromExcelAndGenerateErrorReport(file);
 
@@ -103,27 +91,25 @@ public class UserController {
             String reportFilename = "import_report_" + (originalFilename != null ? originalFilename : "results.xlsx");
             headers.setContentDispositionFormData("attachment", reportFilename);
 
-            return ApiResponse.builder()
-                    .result(reportBytes)
-                    .build();
+            return new ResponseEntity<>(reportBytes, headers, HttpStatus.OK);
 
         } catch (AppException e) {
-            log.error("Import failed: {}", e.getMessage()); // Ghi log lỗi
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("errorCode", e.getErrorCode());
-            errorResponse.put("message", e.getMessage());
-            return ApiResponse.builder()
-                    .result(errorResponse)
-                    .build();
+            log.error("Import failed: {}", e.getMessage());
+            String errorMessage = "Error Code: " + e.getErrorCode() + ", Message: " + e.getMessage();
+            byte[] errorBytes = errorMessage.getBytes(StandardCharsets.UTF_8);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            return new ResponseEntity<>(errorBytes, headers, HttpStatus.INTERNAL_SERVER_ERROR);
 
         } catch (Exception e) {
-            log.error("Unexpected error during import: {}", e.getMessage(), e); // Ghi log đầy đủ stacktrace
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("errorCode", "UNEXPECTED_ERROR");
-            errorResponse.put("message", "An unexpected error occurred: " + e.getMessage());
-            return ApiResponse.builder()
-                    .result(errorResponse)
-                    .build();
+            log.error("Unexpected error during import: {}", e.getMessage(), e);
+            String errorMessage = "Unexpected error: " + e.getMessage();
+            byte[] errorBytes = errorMessage.getBytes(StandardCharsets.UTF_8);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            return new ResponseEntity<>(errorBytes, headers, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
