@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -28,10 +27,10 @@ import viettelsoftware.intern.service.AuthService;
 import viettelsoftware.intern.util.CommonUtil;
 import viettelsoftware.intern.util.EmailUtil;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
+import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -47,10 +46,6 @@ public class AuthServiceImpl implements AuthService {
     UserRepository userRepository;
     final String RESET_PW_PREFIX = "reset_pw_";
     InvalidatedTokenRepository invalidatedTokenRepository;
-
-    @NonFinal
-    @Value("${jwt.secret}")
-    protected String SECRET_KEY;
 
     @NonFinal
     @Value("${jwt.valid-duration}")
@@ -181,7 +176,7 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.opsForValue().set(keyGetUUID, uuid, 30, TimeUnit.MINUTES);
         redisTemplate.opsForValue().set(RESET_PW_PREFIX + uuid, email, 30, TimeUnit.MINUTES);
 
-        String url = "http://localhost:8080/identity/auth/reset-password?key=" + uuid;
+        String url = "http://localhost:8080/api/auth/reset-password?key=" + uuid;
 
         Map<String, Object> param = Map.of("username", user.getUsername(), "url", url);
 

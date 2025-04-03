@@ -27,11 +27,14 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import viettelsoftware.intern.service.UserService;
 import viettelsoftware.intern.util.ConversionUtil;
+import viettelsoftware.intern.util.FileUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -412,4 +415,28 @@ public class UserServiceImpl implements UserService {
         }
         return ConversionUtil.convertList(users, x -> modelMapper.map(x, UserResponse.class));
     }
+
+    public byte[] exportUsersToExcel() throws IOException {
+        List<UserEntity> users = userRepository.findAll();
+
+        List<UserResponse> userDTOs = users.stream()
+                .map(user -> new UserResponse(user.getUserId(), user.getUsername(), user.getFullName(), user.getEmail(), user.getPhone(), user.getAddress(), user.getRoles().stream().map(RoleEntity::getName).collect(Collectors.toSet())))
+                .toList();
+
+//        Map<String, Object> params = new HashMap<>();
+//        params.put("reportTitle", "Danh sách Người dùng");
+//        params.put("generatedDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
+
+        String templatePath = "templates/excel/TemplateExcel.xlsx";
+        String outputPath = "tmp/excel-exports/users_export.xlsx";
+
+        FileUtil.writeToFileExcel(userDTOs, null, templatePath, outputPath);
+
+        return Files.readAllBytes(Paths.get(outputPath));
+    }
+
+    public List<Object[]> readExcelFile(String excelFilePath, int sheetIndex, int startRow) throws IOException {
+        return FileUtil.readExcel(excelFilePath, sheetIndex, startRow);
+    }
+
 }
