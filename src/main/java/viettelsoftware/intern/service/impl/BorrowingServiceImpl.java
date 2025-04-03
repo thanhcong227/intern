@@ -11,8 +11,12 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.dto.request.EmailObjectRequest;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.entity.*;
 import viettelsoftware.intern.exception.AppException;
@@ -21,12 +25,15 @@ import viettelsoftware.intern.repository.BookRepository;
 import viettelsoftware.intern.repository.BorrowingRepository;
 import viettelsoftware.intern.repository.UserRepository;
 import viettelsoftware.intern.service.BorrowingService;
+import viettelsoftware.intern.util.EmailUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,6 +47,7 @@ public class BorrowingServiceImpl implements BorrowingService {
     UserRepository userRepository;
     BookRepository bookRepository;
     BorrowingMapper borrowingMapper;
+    EmailUtil emailUtil;
 
     @Override
     public BorrowingResponse create(String userId, Set<String> bookIds) {
@@ -138,5 +146,41 @@ public class BorrowingServiceImpl implements BorrowingService {
         } catch (IOException e) {
             return new byte[0];
         }
+    }
+
+    @Transactional
+    public int sendReminderEmails() {
+        LocalDate reminderDate = LocalDate.now().plusDays(2);
+        List<BorrowingEntity> borrowings = borrowingRepository.findByDueDate(reminderDate);
+
+        if (borrowings.isEmpty()) {
+            log.info("Không có người dùng nào cần nhận email nhắc nhở.");
+            return 0;
+        }
+
+        int count = 0;
+        for (BorrowingEntity borrowing : borrowings) {
+            String email = borrowing.getUser().getEmail();
+            String subject = "Thông báo sắp đến hạn trả sách";
+            Map<String, Object> params = new HashMap<>();
+            params.put("username", borrowing.getUser().getUsername());
+            params.put("dueDate", borrowing.getDueDate().toString());
+            params.put("books", borrowing.getBorrowings().stream()
+                    .map(b -> b.getBook().getTitle())
+                    .collect(Collectors.toList()));
+
+            EmailObjectRequest emailObjectRequest = EmailObjectRequest.builder()
+                    .emailTo(new String[]{email})
+                    .subject(subject)
+                    .template("email-reminder")
+                    .params(params)
+                    .build();
+
+            emailUtil.sendEmail(emailObjectRequest);
+            log.info("Đã gửi email nhắc nhở đến {}", email);
+            count++;
+        }
+
+        return count;
     }
 }
