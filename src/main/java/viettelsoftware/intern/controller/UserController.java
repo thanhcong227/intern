@@ -1,5 +1,6 @@
 package viettelsoftware.intern.controller;
 
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -39,7 +40,7 @@ public class UserController {
 
     @PostMapping()
     @PreAuthorize("hasAuthority('USER_MANAGE')")
-    ResponseEntity<GeneralResponse<UserResponse>> create(@RequestBody UserRequest request) {
+    ResponseEntity<GeneralResponse<UserResponse>> create(@RequestBody @Valid UserRequest request) {
         return responseFactory.success(userServiceImpl.create(request));
     }
 
