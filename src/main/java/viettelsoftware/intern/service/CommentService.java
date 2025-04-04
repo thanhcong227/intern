@@ -2,11 +2,13 @@ package viettelsoftware.intern.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import viettelsoftware.intern.dto.request.CommentRequest;
+import viettelsoftware.intern.dto.response.CommentResponse;
 import viettelsoftware.intern.entity.CommentEntity;
-import viettelsoftware.intern.entity.PostEntity;
 
 public interface CommentService {
-    CommentEntity create(CommentEntity request);
+
+    CommentResponse create(CommentRequest request);
 
     CommentEntity update(String commentId, CommentEntity request);
 

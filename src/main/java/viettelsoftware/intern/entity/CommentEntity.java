@@ -31,4 +31,8 @@ public class CommentEntity {
     @JoinColumn(name = "userId", nullable = false)
     UserEntity user;
 
+    @Override
+    public String toString() {
+        return commentId;
+    }
 }

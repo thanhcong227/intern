@@ -39,27 +39,24 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = getTokenFromRequest(request);
-        if (StringUtils.hasText(token) && jwtUtil.isTokenExpired(token)) {
+        if (StringUtils.hasText(token) && !jwtUtil.isTokenExpired(token)) {
             String username = jwtUtil.extractUsername(token);
-            UserEntity userEntity = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-            if (userEntity != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserEntity userEntity = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
                 Claims claims = jwtUtil.getClaims(token);
-
                 Object rolesClaim = claims.get("scope");
+
                 if (rolesClaim == null) {
                     throw new AppException(ErrorCode.USER_NOT_FOUND);
-                } else {
-                    log.info("rolesClaim: {}", rolesClaim);
                 }
-                Collection<? extends GrantedAuthority> authorities;
-                authorities = Arrays.stream(rolesClaim.toString().split(" "))
+
+                Collection<? extends GrantedAuthority> authorities = Arrays.stream(rolesClaim.toString().split(" "))
                         .filter(auth -> !auth.trim().isEmpty())
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userEntity, null, authorities);
-
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);

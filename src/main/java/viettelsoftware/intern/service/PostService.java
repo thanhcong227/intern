@@ -2,11 +2,12 @@ package viettelsoftware.intern.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import viettelsoftware.intern.entity.BookEntity;
+import viettelsoftware.intern.dto.request.PostRequest;
+import viettelsoftware.intern.dto.response.PostResponse;
 import viettelsoftware.intern.entity.PostEntity;
 
 public interface PostService {
-    PostEntity create(PostEntity request);
+    PostResponse create(PostRequest request);
 
     PostEntity update(String postId, PostEntity request);
 

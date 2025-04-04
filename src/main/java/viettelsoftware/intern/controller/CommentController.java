@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.dto.request.CommentRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
+import viettelsoftware.intern.dto.response.CommentResponse;
 import viettelsoftware.intern.entity.CommentEntity;
 import viettelsoftware.intern.service.impl.CommentServiceImpl;
 
@@ -25,8 +27,8 @@ public class CommentController {
 
     @PostMapping()
     @PreAuthorize("isAuthenticated()")
-    ApiResponse<CommentEntity> create(@RequestBody CommentEntity request) {
-        return ApiResponse.<CommentEntity>builder()
+    ApiResponse<CommentResponse> create(@RequestBody CommentRequest request) {
+        return ApiResponse.<CommentResponse>builder()
                 .result(commentServiceImpl.create(request))
                 .build();
     }

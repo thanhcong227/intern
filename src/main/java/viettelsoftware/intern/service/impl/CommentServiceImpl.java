@@ -9,14 +9,23 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.dto.request.CommentRequest;
+import viettelsoftware.intern.dto.response.CommentResponse;
 import viettelsoftware.intern.entity.CommentEntity;
+import viettelsoftware.intern.entity.PostEntity;
+import viettelsoftware.intern.entity.UserEntity;
 import viettelsoftware.intern.exception.AppException;
 import viettelsoftware.intern.repository.CommentRepository;
+import viettelsoftware.intern.repository.PostRepository;
+import viettelsoftware.intern.repository.UserRepository;
 import viettelsoftware.intern.service.CommentService;
+import viettelsoftware.intern.util.ConversionUtil;
+import viettelsoftware.intern.util.SecurityUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -31,13 +40,26 @@ import java.util.List;
 public class CommentServiceImpl implements CommentService {
 
     CommentRepository commentRepository;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
 
     @Override
-    public CommentEntity create(CommentEntity request) {
-        if (commentRepository.existsById(request.getCommentId()))
-            throw new AppException(ErrorCode.COMMENT_EXISTED);
-        request.setCreatedAt(LocalDate.now());
-        return commentRepository.save(request);
+    public CommentResponse create(CommentRequest request) {
+        PostEntity post = postRepository.findById(request.getPostId()).orElseThrow(
+                () -> new AppException(ErrorCode.POST_NOT_FOUND));
+
+        String username = SecurityUtil.getCurrentUserLogin().orElseThrow();
+        UserEntity user = userRepository.findByUsername(username).orElseThrow(
+                () -> new AppException(ErrorCode.USER_NOT_FOUND));
+        CommentEntity commentEntity = CommentEntity.builder()
+                .content(request.getContent())
+                .createdAt(LocalDate.now())
+                .post(post)
+                .user(user)
+                .build();
+        CommentEntity c = commentRepository.save(commentEntity);
+        return ConversionUtil.convertObject(c, x -> modelMapper.map(x, CommentResponse.class));
     }
 
     @Override

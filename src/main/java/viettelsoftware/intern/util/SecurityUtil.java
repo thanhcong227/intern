@@ -6,6 +6,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import viettelsoftware.intern.config.CustomUser;
+import viettelsoftware.intern.entity.UserEntity;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +14,7 @@ import java.util.stream.Stream;
 
 public final class SecurityUtil {
 
-    private SecurityUtil() {
+    public SecurityUtil() {
     }
 
     public static Optional<String> getCurrentUserLogin() {
@@ -26,6 +27,8 @@ public final class SecurityUtil {
             return null;
         } else if (authentication.getPrincipal() instanceof UserDetails userDetails) {
             return userDetails.getUsername();
+        } else if (authentication.getPrincipal() instanceof UserEntity userEntity) {
+            return userEntity.getUsername();
         } else if (authentication.getPrincipal() instanceof String string) {
             return string;
         }

@@ -38,7 +38,7 @@ public class SecurityConfiguration {
     }};
 
     private static final String[] AUTH_WHITELIST = {
-            "/api/auth/**",
+            "/auth/**",
             "/v3/api-docs/**",
             "/v3/api-docs.yaml",
             "/swagger-ui/**",
@@ -58,16 +58,17 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll()
-//                {
-//                    auth.requestMatchers(AUTH_WHITELIST).permitAll();
-//
-//                    API_PERMISSIONS.forEach((api, permission) ->
-//                            auth.requestMatchers(api).hasAnyAuthority(permission)
-//                    );
-//
-//                    auth.anyRequest().authenticated();
-//                }
+                .authorizeHttpRequests(auth ->
+//                                auth.anyRequest().permitAll()
+                {
+                    auth.requestMatchers(AUTH_WHITELIST).permitAll();
+
+                    API_PERMISSIONS.forEach((api, permission) ->
+                            auth.requestMatchers(api).hasAnyAuthority(permission)
+                    );
+
+                    auth.anyRequest().authenticated();
+                }
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 

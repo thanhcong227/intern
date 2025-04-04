@@ -11,21 +11,22 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.dto.BorrowedBookInfo;
 import viettelsoftware.intern.dto.request.EmailObjectRequest;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.entity.*;
 import viettelsoftware.intern.exception.AppException;
 import viettelsoftware.intern.mapper.BorrowingMapper;
 import viettelsoftware.intern.repository.BookRepository;
+import viettelsoftware.intern.repository.BorrowingBookRepository;
 import viettelsoftware.intern.repository.BorrowingRepository;
 import viettelsoftware.intern.repository.UserRepository;
 import viettelsoftware.intern.service.BorrowingService;
 import viettelsoftware.intern.util.EmailUtil;
+import viettelsoftware.intern.util.SecurityUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -44,6 +45,7 @@ import java.util.stream.Collectors;
 public class BorrowingServiceImpl implements BorrowingService {
 
     BorrowingRepository borrowingRepository;
+    BorrowingBookRepository borrowingBookRepository;
     UserRepository userRepository;
     BookRepository bookRepository;
     BorrowingMapper borrowingMapper;
@@ -58,18 +60,18 @@ public class BorrowingServiceImpl implements BorrowingService {
                 .borrowedAt(LocalDate.now())
                 .dueDate(LocalDate.now().plusDays(14))
                 .build();
-
-        Set<BorrowingBook> sets = bookIds.stream().map(bookId ->
-        {
+        borrowing = borrowingRepository.save(borrowing);
+        BorrowingEntity finalBorrowing = borrowing;
+        Set<BorrowingBook> sets = bookIds.stream().map(bookId -> {
             BookEntity book = bookRepository.findById(bookId).orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
             return BorrowingBook.builder()
-                    .borrowing(borrowing)
+                    .borrowing(finalBorrowing)
                     .book(book)
                     .build();
         }).collect(Collectors.toSet());
-
+        borrowingBookRepository.saveAll(sets);
         borrowing.setBorrowings(sets);
-        return borrowingMapper.toBorrowingResponse(borrowingRepository.save(borrowing));
+        return borrowingMapper.toBorrowingResponse(borrowing);
     }
 
     @Override
@@ -182,5 +184,33 @@ public class BorrowingServiceImpl implements BorrowingService {
         }
 
         return count;
+    }
+
+    @Override
+    public List<BorrowedBookInfo> getBorrowedBooksByCurrentUser() {
+        String username = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        log.info("Current user: {}", username);
+
+        UserEntity user = userRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // Lấy danh sách các BorrowingEntity chưa trả
+        List<BorrowingEntity> activeBorrowings = borrowingRepository.findByUserAndReturnedAtIsNull(user);
+        log.info("Active borrowings: {}", activeBorrowings.size());
+
+        for (BorrowingEntity b : activeBorrowings) {
+            log.info("Borrowing ID: {}", b.getBorrowingId());
+            log.info("BorrowingBooks size: {}", b.getBorrowings().size());
+        }
+
+        // Lấy tất cả BorrowingBook liên quan đến các Borrowing chưa trả
+        return activeBorrowings.stream()
+                .flatMap(borrowing -> borrowing.getBorrowings().stream())
+                .map(borrowingBook -> new BorrowedBookInfo(
+                        borrowingBook.getBook().getTitle(),
+                        borrowingBook.getQuantity()
+                ))
+                .collect(Collectors.toList());
     }
 }

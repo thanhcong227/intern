@@ -3,7 +3,7 @@ package viettelsoftware.intern.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import viettelsoftware.intern.entity.BorrowingEntity;
-import viettelsoftware.intern.entity.PermissionEntity;
+import viettelsoftware.intern.entity.UserEntity;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,4 +14,5 @@ public interface BorrowingRepository extends JpaRepository<BorrowingEntity,Strin
 
     boolean existsByBorrowingId(String borrowingId);
     List<BorrowingEntity> findByDueDate(LocalDate dueDate);
+    List<BorrowingEntity> findByUserAndReturnedAtIsNull(UserEntity user);
 }

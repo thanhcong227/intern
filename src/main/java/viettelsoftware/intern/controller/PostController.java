@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.dto.request.PostRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
+import viettelsoftware.intern.dto.response.PostResponse;
 import viettelsoftware.intern.entity.PostEntity;
 import viettelsoftware.intern.service.impl.PostServiceImpl;
 
@@ -25,8 +27,8 @@ public class PostController {
 
     @PostMapping()
     @PreAuthorize("hasAuthority('POST_MANAGE')")
-    ApiResponse<PostEntity> create(@RequestBody PostEntity request) {
-        return ApiResponse.<PostEntity>builder()
+    ApiResponse<PostResponse> create(@RequestBody PostRequest request) {
+        return ApiResponse.<PostResponse>builder()
                 .result(postServiceImpl.create(request))
                 .build();
     }

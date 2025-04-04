@@ -9,14 +9,21 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.dto.request.PostRequest;
+import viettelsoftware.intern.dto.response.PostResponse;
 import viettelsoftware.intern.entity.PostEntity;
+import viettelsoftware.intern.entity.UserEntity;
 import viettelsoftware.intern.exception.AppException;
 import viettelsoftware.intern.repository.PostRepository;
+import viettelsoftware.intern.repository.UserRepository;
 import viettelsoftware.intern.service.PostService;
+import viettelsoftware.intern.util.ConversionUtil;
+import viettelsoftware.intern.util.SecurityUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -31,13 +38,39 @@ import java.util.List;
 public class PostServiceImpl implements PostService {
 
     PostRepository postRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
 
     @Override
-    public PostEntity create(PostEntity request) {
-        if (postRepository.existsById(request.getPostId()) || postRepository.existsByTitle(request.getTitle()))
+    public PostResponse create(PostRequest request) {
+        if (postRepository.existsByTitle(request.getTitle())) {
             throw new AppException(ErrorCode.POST_EXISTED);
-        request.setCreatedAt(LocalDate.now());
-        return postRepository.save(request);
+        }
+
+        PostEntity post = new PostEntity();
+        post.setTitle(request.getTitle());
+        post.setBody(request.getBody());
+        post.setCreatedAt(LocalDate.now());
+
+        // Log để kiểm tra giá trị username lấy từ SecurityContext
+        String username = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> {
+                    log.error("Username not found in SecurityContext.");
+                    return new AppException(ErrorCode.USER_NOT_FOUND);
+                });
+
+        log.info("Current username: {}", username);
+        log.info("Current username from SecurityContext: {}", username);
+
+        UserEntity user = userRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> {
+                    log.error("User not found: {}", username);
+                    return new AppException(ErrorCode.USER_NOT_FOUND);
+                });
+
+        post.setUser(user);
+        postRepository.save(post);
+        return ConversionUtil.convertObject(post, x -> modelMapper.map(x, PostResponse.class));
     }
 
     @Override

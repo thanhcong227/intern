@@ -27,6 +27,8 @@ import viettelsoftware.intern.service.AuthService;
 import viettelsoftware.intern.util.CommonUtil;
 import viettelsoftware.intern.util.EmailUtil;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -56,10 +58,11 @@ public class AuthServiceImpl implements AuthService {
     protected long REFRESHABLE_DURATION;
 
     public String generateToken(UserEntity userEntity) {
+        Date expirationDate = Date.from(Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS));
         return Jwts.builder()
                 .subject(userEntity.getUsername())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + VALID_DURATION))
+                .expiration(expirationDate)
                 .signWith(jwtUtil.getSignInKey())
                 .claim("scope", buildScope(userEntity))
                 .compact();
@@ -92,7 +95,13 @@ public class AuthServiceImpl implements AuthService {
     public boolean isTokenValid(String token) {
         try {
             verifyToken(token, false);
-            return !jwtUtil.isTokenExpired(token) && !invalidatedTokenRepository.existsById(jwtUtil.getClaims(token).getId());
+
+            boolean isExpired = jwtUtil.isTokenExpired(token);
+
+            String tokenId = jwtUtil.getClaims(token).getId();
+            boolean isInvalidated = invalidatedTokenRepository.existsById(tokenId);
+
+            return !isExpired && !isInvalidated;
         } catch (AppException e) {
             return false;
         }
@@ -124,12 +133,13 @@ public class AuthServiceImpl implements AuthService {
         try {
             verifyToken(token, false);
 
-            if (invalidatedTokenRepository.existsById(jwtUtil.getClaims(token).getId())) {
+            String tokenId = jwtUtil.getClaims(token).getId();
+            if (invalidatedTokenRepository.existsById(tokenId)) {
                 throw new AppException(ErrorCode.TOKEN_INVALID);
             }
 
             invalidatedTokenRepository.save(InvalidatedToken.builder()
-                    .id(jwtUtil.getClaims(token).getId())
+                    .id(tokenId)
                     .expiryTime(jwtUtil.getClaims(token).getExpiration())
                     .build());
         } catch (Exception e) {
@@ -153,8 +163,6 @@ public class AuthServiceImpl implements AuthService {
             }
         }
     }
-
-
 
     @Transactional
     @Override
