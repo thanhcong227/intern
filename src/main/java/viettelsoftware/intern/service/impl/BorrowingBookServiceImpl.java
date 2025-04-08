@@ -8,12 +8,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.BorrowingBookRequest;
 import viettelsoftware.intern.dto.response.BorrowingBookResponse;
 import viettelsoftware.intern.entity.BookEntity;
 import viettelsoftware.intern.entity.BorrowingBook;
 import viettelsoftware.intern.entity.BorrowingEntity;
 import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.mapper.BorrowingBookMapper;
 import viettelsoftware.intern.repository.BookRepository;
 import viettelsoftware.intern.repository.BorrowingBookRepository;
@@ -38,15 +40,15 @@ public class BorrowingBookServiceImpl implements BorrowingBookService {
     @Override
     public BorrowingBookResponse create(String borrowingId, List<BorrowingBookRequest> requests) {
         BorrowingEntity borrowing = borrowingRepository.findById(borrowingId)
-                .orElseThrow(() -> new AppException(ErrorCode.BORROWING_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND));
 
         Set<BorrowingBook> borrowingBooks = requests.stream().map(request -> {
             BookEntity book = bookRepository.findById(request.getBookId())
-                    .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                    .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
             if (request.getQuantity() < 0) {
-                throw new AppException(ErrorCode.BOOK_QUANTITY_INVALID);
+                throw new CustomException(ResponseStatusCodeEnum.BOOK_QUANTITY_INVALID);
             } else if (book.getQuantity() < request.getQuantity()) {
-                throw new AppException(ErrorCode.BOOK_NOT_ENOUGH);
+                throw new CustomException(ResponseStatusCodeEnum.BOOK_NOT_ENOUGH);
             } else {
                 book.setQuantity(book.getQuantity() - request.getQuantity());
                 bookRepository.save(book);
@@ -63,21 +65,21 @@ public class BorrowingBookServiceImpl implements BorrowingBookService {
 
         return borrowingBooks.stream().findFirst()
                 .map(borrowingBookMapper::toBorrowingBookResponse)
-                .orElseThrow(() -> new AppException(ErrorCode.BORROWING_BOOK_CREATION_FAILED));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BORROWING_BOOK_CREATION_FAILED));
     }
 
     @Override
     public BorrowingBookResponse update(String borrowingBookId, BorrowingBookRequest request) {
         BorrowingBook borrowingBook = borrowingBookRepository.findById(borrowingBookId)
-                .orElseThrow(() -> new AppException(ErrorCode.BORROWING_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND));
 
         if (request.getQuantity() < 0) {
-            throw new AppException(ErrorCode.BOOK_QUANTITY_INVALID);
+            throw new CustomException(ResponseStatusCodeEnum.BOOK_QUANTITY_INVALID);
         } else if (request.getQuantity() == 0) {
             borrowingBookRepository.deleteById(borrowingBookId);
             return borrowingBookMapper.toBorrowingBookResponse(borrowingBook);
         } else if (request.getQuantity() > borrowingBook.getBook().getQuantity()) {
-            throw new AppException(ErrorCode.BOOK_NOT_ENOUGH);
+            throw new CustomException(ResponseStatusCodeEnum.BOOK_NOT_ENOUGH);
         }
         BookEntity book = borrowingBook.getBook();
         book.setQuantity(book.getQuantity() + borrowingBook.getQuantity() - request.getQuantity());
@@ -93,7 +95,7 @@ public class BorrowingBookServiceImpl implements BorrowingBookService {
     @Override
     public void delete(String borrowingBookId) {
         if (!borrowingBookRepository.existsById(borrowingBookId)) {
-            throw new AppException(ErrorCode.BORROWING_BOOK_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.BORROWING_BOOK_NOT_FOUND);
         }
         borrowingBookRepository.deleteById(borrowingBookId);
     }
@@ -101,7 +103,7 @@ public class BorrowingBookServiceImpl implements BorrowingBookService {
     @Override
     public BorrowingBookResponse getBorrowingBook(String borrowingBookId) {
         BorrowingBook borrowingBook = borrowingBookRepository.findById(borrowingBookId)
-                .orElseThrow(() -> new AppException(ErrorCode.BORROWING_BOOK_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BORROWING_BOOK_NOT_FOUND));
 
         return borrowingBookMapper.toBorrowingBookResponse(borrowingBook);
     }

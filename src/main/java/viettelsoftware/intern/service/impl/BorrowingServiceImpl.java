@@ -14,11 +14,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.BorrowedBookInfo;
 import viettelsoftware.intern.dto.request.EmailObjectRequest;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.entity.*;
 import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.mapper.BorrowingMapper;
 import viettelsoftware.intern.repository.BookRepository;
 import viettelsoftware.intern.repository.BorrowingBookRepository;
@@ -54,7 +56,7 @@ public class BorrowingServiceImpl implements BorrowingService {
     @Override
     public BorrowingResponse create(String userId, Set<String> bookIds) {
         UserEntity user = userRepository.findById(userId).orElseThrow(
-                () -> new AppException(ErrorCode.USER_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
         BorrowingEntity borrowing = BorrowingEntity.builder()
                 .user(user)
                 .borrowedAt(LocalDate.now())
@@ -63,7 +65,7 @@ public class BorrowingServiceImpl implements BorrowingService {
         borrowing = borrowingRepository.save(borrowing);
         BorrowingEntity finalBorrowing = borrowing;
         Set<BorrowingBook> sets = bookIds.stream().map(bookId -> {
-            BookEntity book = bookRepository.findById(bookId).orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+            BookEntity book = bookRepository.findById(bookId).orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
             return BorrowingBook.builder()
                     .borrowing(finalBorrowing)
                     .book(book)
@@ -77,11 +79,11 @@ public class BorrowingServiceImpl implements BorrowingService {
     @Override
     public BorrowingResponse update(String borrowingId, Set<String> bookIds) {
         BorrowingEntity borrowing = borrowingRepository.findById(borrowingId)
-                .orElseThrow(() -> new AppException(ErrorCode.BORROWING_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND));
 
         Set<BorrowingBook> updatedBorrowings = bookIds.stream().map(bookId -> {
             BookEntity book = bookRepository.findById(bookId)
-                    .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                    .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
             return BorrowingBook.builder()
                     .borrowing(borrowing)
                     .book(book)
@@ -95,14 +97,14 @@ public class BorrowingServiceImpl implements BorrowingService {
     @Override
     public void delete(String permissionId) {
         if (!borrowingRepository.existsById(permissionId))
-            throw new AppException(ErrorCode.BORROWING_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND);
         borrowingRepository.deleteById(permissionId);
     }
 
     @Override
     public BorrowingResponse getBorrowing(String borrowingId) {
         BorrowingEntity borrowing = borrowingRepository.findById(borrowingId).orElseThrow(
-                () -> new AppException(ErrorCode.BORROWING_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND));
         return borrowingMapper.toBorrowingResponse(borrowing);
     }
 
@@ -189,11 +191,11 @@ public class BorrowingServiceImpl implements BorrowingService {
     @Override
     public List<BorrowedBookInfo> getBorrowedBooksByCurrentUser() {
         String username = SecurityUtil.getCurrentUserLogin()
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
         log.info("Current user: {}", username);
 
         UserEntity user = userRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
 
         // Lấy danh sách các BorrowingEntity chưa trả
         List<BorrowingEntity> activeBorrowings = borrowingRepository.findByUserAndReturnedAtIsNull(user);

@@ -13,11 +13,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.PermissionRequest;
 import viettelsoftware.intern.dto.response.PermissionResponse;
 import viettelsoftware.intern.entity.PermissionEntity;
 import viettelsoftware.intern.entity.RoleEntity;
 import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.mapper.PermissionMapper;
 import viettelsoftware.intern.repository.PermissionRepository;
 import viettelsoftware.intern.repository.RoleRepository;
@@ -45,12 +47,12 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public PermissionResponse create(PermissionRequest request) {
         if (permissionRepository.existsByName(request.getName()))
-            throw new AppException(ErrorCode.PERMISSION_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.PERMISSION_EXISTED);
         Set<RoleEntity> roles = request.getRoles();
         if (Optional.ofNullable(roles).isPresent()) {
             roles.stream()
                     .map(role -> roleRepository.findByName(role.getName())
-                            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+                            .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND)))
                     .collect(Collectors.toSet());
         } else {
             roles = Set.of();
@@ -67,15 +69,15 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public PermissionResponse update(String permissionId, PermissionRequest request) {
         PermissionEntity existingPermission = permissionRepository.findById(permissionId)
-                .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.PERMISSION_NOT_FOUND));
 
         if (!existingPermission.getName().equals(request.getName()) && permissionRepository.existsByName(request.getName())) {
-            throw new AppException(ErrorCode.PERMISSION_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.PERMISSION_EXISTED);
         }
 
         Set<RoleEntity> roles = request.getRoles().stream()
                 .map(roleRequest -> roleRepository.findByName(roleRequest.getName())
-                        .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND)))
                 .collect(Collectors.toSet());
 
         existingPermission.setName(request.getName());
@@ -89,14 +91,14 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public void delete(String permissionId) {
         if (!permissionRepository.existsById(permissionId))
-            throw new AppException(ErrorCode.PERMISSION_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.PERMISSION_NOT_FOUND);
         permissionRepository.deleteById(permissionId);
     }
 
     @Override
     public PermissionResponse getPermission(String permissionId) {
         PermissionEntity permissionEntity = permissionRepository.findById(permissionId)
-                .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.PERMISSION_NOT_FOUND));
         return permissionMapper.toPermissionResponse(permissionEntity);
     }
 

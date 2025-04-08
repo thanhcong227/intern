@@ -14,12 +14,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.CommentRequest;
 import viettelsoftware.intern.dto.response.CommentResponse;
 import viettelsoftware.intern.entity.CommentEntity;
 import viettelsoftware.intern.entity.PostEntity;
 import viettelsoftware.intern.entity.UserEntity;
 import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.repository.CommentRepository;
 import viettelsoftware.intern.repository.PostRepository;
 import viettelsoftware.intern.repository.UserRepository;
@@ -47,11 +49,11 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentResponse create(CommentRequest request) {
         PostEntity post = postRepository.findById(request.getPostId()).orElseThrow(
-                () -> new AppException(ErrorCode.POST_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND));
 
         String username = SecurityUtil.getCurrentUserLogin().orElseThrow();
         UserEntity user = userRepository.findByUsername(username).orElseThrow(
-                () -> new AppException(ErrorCode.USER_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
         CommentEntity commentEntity = CommentEntity.builder()
                 .content(request.getContent())
                 .createdAt(LocalDate.now())
@@ -65,7 +67,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentEntity update(String commentId, CommentRequest request) {
         CommentEntity existingComment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.COMMENT_NOT_FOUND));
 
         existingComment.setContent(request.getContent());
         existingComment.setUpdatedAt(LocalDate.now());
@@ -76,14 +78,14 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void delete(String commentId) {
         if (!commentRepository.existsById(commentId))
-            throw new AppException(ErrorCode.COMMENT_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.COMMENT_NOT_FOUND);
         commentRepository.deleteById(commentId);
     }
 
     @Override
     public CommentResponse getComment(String commentId) {
         CommentEntity commentEntity = commentRepository.findById(commentId).orElseThrow(
-                () -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.COMMENT_NOT_FOUND));
         return ConversionUtil.convertObject(commentEntity, x -> modelMapper.map(x, CommentResponse.class));
     }
 

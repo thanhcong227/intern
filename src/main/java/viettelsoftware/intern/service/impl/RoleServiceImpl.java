@@ -13,11 +13,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.RoleRequest;
 import viettelsoftware.intern.dto.response.RoleResponse;
 import viettelsoftware.intern.entity.PermissionEntity;
 import viettelsoftware.intern.entity.RoleEntity;
 import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.mapper.RoleMapper;
 import viettelsoftware.intern.repository.PermissionRepository;
 import viettelsoftware.intern.repository.RoleRepository;
@@ -43,11 +45,11 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public RoleResponse create(RoleRequest request) {
         if (roleRepository.existsByName(request.getName()))
-            throw new AppException(ErrorCode.ROLE_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.ROLE_EXISTED);
         RoleEntity roleEntity = roleMapper.toRole(request);
         Set<PermissionEntity> set = request.getPermissionIds().stream()
                 .map(permissionDto -> permissionRepository.findByName(permissionDto.getName())
-                        .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND)))
+                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.PERMISSION_NOT_FOUND)))
                 .collect(Collectors.toSet());
         roleEntity.setPermissions(set);
         roleRepository.save(roleEntity);
@@ -57,24 +59,24 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public void delete(String roleId) {
         if (!roleRepository.existsById(roleId))
-            throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND);
         roleRepository.deleteById(roleId);
     }
 
     @Override
     public RoleResponse update(String roleId, RoleRequest request) {
         RoleEntity role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND));
 
         if (!role.getName().equals(request.getName()) && roleRepository.existsByName(request.getName())) {
-            throw new AppException(ErrorCode.ROLE_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.ROLE_EXISTED);
         }
 
         role.setName(request.getName());
 
         Set<PermissionEntity> updatedPermissions = request.getPermissionIds().stream()
                 .map(permissionDto -> permissionRepository.findByName(permissionDto.getName())
-                        .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND)))
+                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.PERMISSION_NOT_FOUND)))
                 .collect(Collectors.toSet());
         role.setPermissions(updatedPermissions);
 
@@ -84,7 +86,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public RoleResponse getRole(String roleId) {
         RoleEntity roleEntity = roleRepository.findById(roleId).orElseThrow(
-                () -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND));
         return roleMapper.toRoleResponse(roleEntity);
     }
 

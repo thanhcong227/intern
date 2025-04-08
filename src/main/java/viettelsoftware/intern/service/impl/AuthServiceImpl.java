@@ -16,11 +16,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import viettelsoftware.intern.config.Jwt.JwtUtil;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.*;
 import viettelsoftware.intern.dto.response.AuthenticationResponse;
 import viettelsoftware.intern.entity.InvalidatedToken;
 import viettelsoftware.intern.entity.UserEntity;
 import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.repository.InvalidatedTokenRepository;
 import viettelsoftware.intern.repository.UserRepository;
 import viettelsoftware.intern.service.AuthService;
@@ -87,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthenticationResponse authenticate(LoginRequest request) {
-        UserEntity userEntity = userRepository.findByUsernameIgnoreCase(request.getUsername()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserEntity userEntity = userRepository.findByUsernameIgnoreCase(request.getUsername()).orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
         var token = generateToken(userEntity);
         return AuthenticationResponse.builder().token(token).authenticated(true).build();
     }
@@ -116,7 +119,7 @@ public class AuthServiceImpl implements AuthService {
         String username = jwtUtil.extractUsername(refreshToken);
 
         UserEntity userEntity = userRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
 
         String newToken = generateToken(userEntity); // Tạo JWT mới
 
@@ -135,7 +138,7 @@ public class AuthServiceImpl implements AuthService {
 
             String tokenId = jwtUtil.getClaims(token).getId();
             if (invalidatedTokenRepository.existsById(tokenId)) {
-                throw new AppException(ErrorCode.TOKEN_INVALID);
+                throw new CustomException(ResponseStatusCodeEnum.TOKEN_INVALID);
             }
 
             invalidatedTokenRepository.save(InvalidatedToken.builder()
@@ -143,13 +146,13 @@ public class AuthServiceImpl implements AuthService {
                     .expiryTime(jwtUtil.getClaims(token).getExpiration())
                     .build());
         } catch (Exception e) {
-            throw new AppException(ErrorCode.TOKEN_INVALID);
+            throw new CustomException(ResponseStatusCodeEnum.TOKEN_INVALID);
         }
     }
 
     public void verifyToken(String token, boolean isRefreshToken) {
         if (!isTokenValid(token)) {
-            throw new AppException(ErrorCode.TOKEN_INVALID);
+            throw new CustomException(ResponseStatusCodeEnum.TOKEN_INVALID);
         }
 
         if (isRefreshToken) {
@@ -159,7 +162,7 @@ public class AuthServiceImpl implements AuthService {
             long refreshExpirationTime = System.currentTimeMillis() + REFRESHABLE_DURATION;
 
             if (expiration.before(new Date(refreshExpirationTime))) {
-                throw new AppException(ErrorCode.TOKEN_EXPIRED);
+                throw new CustomException(ResponseStatusCodeEnum.TOKEN_EXPIRED);
             }
         }
     }
@@ -168,9 +171,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
         if (!CommonUtil.isValidEmail(request.getEmail()))
-            throw new AppException(ErrorCode.INVALID_EMAIL);
+            throw new CustomException(ResponseStatusCodeEnum.INVALID_EMAIL);
 
-        UserEntity user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserEntity user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
 
         String uuid = UUID.randomUUID().toString();
         String email = user.getEmail().trim();
@@ -205,7 +208,7 @@ public class AuthServiceImpl implements AuthService {
         String keyGetEmail = RESET_PW_PREFIX + key;
         String email = redisTemplate.opsForValue().get(keyGetEmail);
         if (email == null) {
-            throw new AppException(ErrorCode.INVALID_EMAIL);
+            throw new CustomException(ResponseStatusCodeEnum.INVALID_EMAIL);
         }
         String keyGetUUID = RESET_PW_PREFIX + email;
         String uuid = redisTemplate.opsForValue().get(keyGetUUID);
@@ -214,7 +217,7 @@ public class AuthServiceImpl implements AuthService {
             redisTemplate.delete(keyGetUUID);
         }
 
-        UserEntity user = userRepository.findByEmail(email).orElseThrow(()-> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserEntity user = userRepository.findByEmail(email).orElseThrow(()-> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
         String newPassword = RandomStringUtils.randomAlphanumeric(10);
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);

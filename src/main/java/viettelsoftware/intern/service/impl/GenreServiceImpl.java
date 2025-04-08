@@ -13,11 +13,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.GenreRequest;
 import viettelsoftware.intern.dto.response.GenreResponse;
 import viettelsoftware.intern.entity.BookEntity;
 import viettelsoftware.intern.entity.GenreEntity;
 import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.mapper.GenreMapper;
 import viettelsoftware.intern.repository.BookRepository;
 import viettelsoftware.intern.repository.GenreRepository;
@@ -44,9 +46,9 @@ public class GenreServiceImpl implements GenreService {
     @Override
     public GenreResponse create(GenreRequest request) {
         if (genreRepository.existsByName(request.getName()))
-            throw new AppException(ErrorCode.GENRE_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.GENRE_EXISTED);
         Set<BookEntity> books = request.getBooks().stream().map(bookRequest -> bookRepository.findByTitle(bookRequest.getTitle()).orElseThrow(
-                () -> new AppException(ErrorCode.BOOK_NOT_FOUND))).collect(Collectors.toSet());
+                () -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND))).collect(Collectors.toSet());
         GenreEntity genreEntity = GenreEntity.builder()
                 .name(request.getName())
                 .books(books)
@@ -58,15 +60,15 @@ public class GenreServiceImpl implements GenreService {
     @Override
     public GenreResponse update(String genreId, GenreRequest request) {
         GenreEntity existingGenre = genreRepository.findById(genreId)
-                .orElseThrow(() -> new AppException(ErrorCode.GENRE_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.GENRE_NOT_FOUND));
 
         if (!existingGenre.getName().equals(request.getName()) && genreRepository.existsByName(request.getName())) {
-            throw new AppException(ErrorCode.GENRE_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.GENRE_EXISTED);
         }
 
         Set<BookEntity> books = request.getBooks().stream()
                 .map(bookRequest -> bookRepository.findByTitle(bookRequest.getTitle())
-                        .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND)))
+                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND)))
                 .collect(Collectors.toSet());
 
         existingGenre.setName(request.getName());
@@ -79,14 +81,14 @@ public class GenreServiceImpl implements GenreService {
     @Override
     public void delete(String genreId) {
         if (!genreRepository.existsById(genreId))
-            throw new AppException(ErrorCode.GENRE_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.GENRE_NOT_FOUND);
         genreRepository.deleteById(genreId);
     }
 
     @Override
     public GenreResponse getGenre(String genreId) {
         GenreEntity genreEntity = genreRepository.findById(genreId).orElseThrow(
-                () -> new AppException(ErrorCode.GENRE_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.GENRE_NOT_FOUND));
         return genreMapper.toGenreResponse(genreEntity);
     }
 

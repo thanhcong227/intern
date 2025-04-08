@@ -13,11 +13,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.BookRequest;
 import viettelsoftware.intern.dto.response.BookResponse;
 import viettelsoftware.intern.entity.BookEntity;
 import viettelsoftware.intern.entity.GenreEntity;
 import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.mapper.BookMapper;
 import viettelsoftware.intern.repository.BookRepository;
 import viettelsoftware.intern.repository.GenreRepository;
@@ -44,9 +46,9 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookResponse create(BookRequest request) {
         if (bookRepository.existsByTitle(request.getTitle()))
-            throw new AppException(ErrorCode.BOOK_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.BOOK_EXISTED);
 
-        Set<GenreEntity> setGenre = request.getGenres().stream().map(genreEntity -> genreRepository.findByName(genreEntity.getName()).orElseThrow(() -> new AppException(ErrorCode.GENRE_NOT_FOUND))).collect(Collectors.toSet());
+        Set<GenreEntity> setGenre = request.getGenres().stream().map(genreEntity -> genreRepository.findByName(genreEntity.getName()).orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.GENRE_NOT_FOUND))).collect(Collectors.toSet());
 
         BookEntity book = BookEntity.builder()
                 .title(request.getTitle())
@@ -62,15 +64,15 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookResponse update(String bookId, BookRequest request) {
         BookEntity book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
 
         if (!book.getTitle().equals(request.getTitle()) && bookRepository.existsByTitle(request.getTitle())) {
-            throw new AppException(ErrorCode.BOOK_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.BOOK_EXISTED);
         }
 
         Set<GenreEntity> setGenre = request.getGenres().stream()
                 .map(genre -> genreRepository.findByName(genre.getName())
-                        .orElseThrow(() -> new AppException(ErrorCode.GENRE_NOT_FOUND)))
+                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.GENRE_NOT_FOUND)))
                 .collect(Collectors.toSet());
 
         book.setTitle(request.getTitle());
@@ -85,14 +87,14 @@ public class BookServiceImpl implements BookService {
     @Override
     public void delete(String bookId) {
         if (!bookRepository.existsById(bookId))
-            throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND);
         bookRepository.deleteById(bookId);
     }
 
     @Override
     public BookResponse getBook(String bookId) {
         BookEntity book = bookRepository.findById(bookId).orElseThrow(
-                () -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                () -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
 
         return bookMapper.toBookResponse(book);
     }

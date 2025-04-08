@@ -103,8 +103,6 @@ public class UserServiceImpl implements UserService {
                 x -> modelMapper.map(x, UserResponse.class));
     }
 
-
-
     @Override
     public void delete(String userId) {
         if (!userRepository.existsById(userId)) {
@@ -215,7 +213,7 @@ public class UserServiceImpl implements UserService {
             }
 
 
-             List<UserEntity> validUsersToSave = new ArrayList<>();
+            List<UserEntity> validUsersToSave = new ArrayList<>();
 
             // Duyệt từng hàng dữ liệu
             while (rows.hasNext()) {
@@ -296,7 +294,7 @@ public class UserServiceImpl implements UserService {
                         log.error("Error saving valid user {} from row {}: {}", username, row.getRowNum() + 1, ex.getMessage());
                         errorCell.setCellValue("Error saving user to database: " + ex.getMessage());
                     }
-                     validUsersToSave.add(user);
+                    validUsersToSave.add(user);
                 }
             }
 
@@ -370,7 +368,7 @@ public class UserServiceImpl implements UserService {
             Cell cell = row.getCell(c, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
             if (cell != null && cell.getCellType() != CellType.BLANK) {
                 String value = getCellStringValue(cell);
-                if(value != null) return false; // Nếu có bất kỳ cell nào có giá trị thì không trống
+                if (value != null) return false; // Nếu có bất kỳ cell nào có giá trị thì không trống
             }
         }
         return true; // Tất cả cell đều trống
@@ -383,7 +381,7 @@ public class UserServiceImpl implements UserService {
         return email.matches(emailRegex);
     }
 
-        private String getCellStringValue(Cell cell) {
+    private String getCellStringValue(Cell cell) {
         if (cell == null) {
             return "";
         }

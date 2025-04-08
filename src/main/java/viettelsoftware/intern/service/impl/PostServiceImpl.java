@@ -44,7 +44,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public PostResponse create(PostRequest request) {
         if (postRepository.existsByTitle(request.getTitle())) {
-            throw new CustomException(ResponseStatusCodeEnum.POST_EXISTED.getCode());
+            throw new CustomException(ResponseStatusCodeEnum.POST_EXISTED);
         }
 
         PostEntity post = new PostEntity();
@@ -56,7 +56,7 @@ public class PostServiceImpl implements PostService {
         String username = SecurityUtil.getCurrentUserLogin()
                 .orElseThrow(() -> {
                     log.error("Username not found in SecurityContext.");
-                    return new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode());
+                    return new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND);
                 });
 
         log.info("Current username: {}", username);
@@ -65,7 +65,7 @@ public class PostServiceImpl implements PostService {
         UserEntity user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> {
                     log.error("User not found: {}", username);
-                    return new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode());
+                    return new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND);
                 });
 
         post.setUser(user);
@@ -76,10 +76,10 @@ public class PostServiceImpl implements PostService {
     @Override
     public PostResponse update(String postId, PostEntity request) {
         PostEntity post = postRepository.findById(postId)
-                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND.getCode()));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND));
 
         if (!post.getTitle().equals(request.getTitle()) && postRepository.existsByTitle(request.getTitle())) {
-            throw new CustomException(ResponseStatusCodeEnum.POST_EXISTED.getCode());
+            throw new CustomException(ResponseStatusCodeEnum.POST_EXISTED);
         }
 
         post.setTitle(request.getTitle());
@@ -93,14 +93,14 @@ public class PostServiceImpl implements PostService {
     @Override
     public void delete(String postId) {
         if (!postRepository.existsById(postId))
-            throw new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND.getCode());
+            throw new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND);
         postRepository.deleteById(postId);
     }
 
     @Override
     public PostResponse getPost(String postId) {
         PostEntity post = postRepository.findById(postId).orElseThrow(
-                () -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND.getCode()));
+                () -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND));
         return ConversionUtil.convertObject(post, x -> modelMapper.map(x, PostResponse.class));
     }
 
