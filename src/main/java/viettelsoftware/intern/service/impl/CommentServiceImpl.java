@@ -63,7 +63,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public CommentEntity update(String commentId, CommentEntity request) {
+    public CommentEntity update(String commentId, CommentRequest request) {
         CommentEntity existingComment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
 
@@ -81,14 +81,16 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public CommentEntity getComment(String commentId) {
-        return commentRepository.findById(commentId).orElseThrow(
+    public CommentResponse getComment(String commentId) {
+        CommentEntity commentEntity = commentRepository.findById(commentId).orElseThrow(
                 () -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
+        return ConversionUtil.convertObject(commentEntity, x -> modelMapper.map(x, CommentResponse.class));
     }
 
     @Override
-    public Page<CommentEntity> getAllComments(Pageable pageable) {
-        return commentRepository.findAll(pageable);
+    public Page<CommentResponse> getAllComments(Pageable pageable) {
+        Page<CommentEntity> comments = commentRepository.findAll(pageable);
+        return ConversionUtil.convertPage(comments, x -> modelMapper.map(x, CommentResponse.class));
     }
 
     @Override

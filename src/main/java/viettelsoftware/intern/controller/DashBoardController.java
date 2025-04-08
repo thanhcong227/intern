@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.BorrowedBookInfo;
 import viettelsoftware.intern.dto.GenreStats;
 import viettelsoftware.intern.dto.response.ApiResponse;
@@ -25,24 +27,24 @@ import java.util.List;
 public class DashBoardController {
 
     DashBoardServiceImpl dashBoardService;
-    private final BorrowingServiceImpl borrowingServiceImpl;
+    BorrowingServiceImpl borrowingServiceImpl;
+    ResponseFactory responseFactory;
 
     @GetMapping("/books/genre")
-    public ResponseEntity<List<GenreStats>> getBooksByGenreStats() {
+    ResponseEntity<GeneralResponse<List<GenreStats>>> getBooksByGenreStats() {
         List<GenreStats> stats = dashBoardService.getBooksByGenreStats();
-        return ResponseEntity.ok(stats);
+        return responseFactory.success(stats);
     }
 
     @GetMapping("/top-posts")
-    public ResponseEntity<List<Object[]>> getTopPosts() {
+    ResponseEntity<GeneralResponse<List<Object[]>>> getTopPosts() {
         List<Object[]> topPosts = dashBoardService.getTop5Posts();
-        return ResponseEntity.ok(topPosts);
+        return responseFactory.success(topPosts);
     }
 
     @GetMapping("/my-borrowed-books")
-    public ApiResponse<List<BorrowedBookInfo>> getMyBorrowedBooks() {
-        return ApiResponse.<List<BorrowedBookInfo>>builder()
-                .result(borrowingServiceImpl.getBorrowedBooksByCurrentUser())
-                .build();
+    ResponseEntity<GeneralResponse<List<BorrowedBookInfo>>> getMyBorrowedBooks() {
+        List<BorrowedBookInfo> list = borrowingServiceImpl.getBorrowedBooksByCurrentUser();
+        return responseFactory.success(list);
     }
 }

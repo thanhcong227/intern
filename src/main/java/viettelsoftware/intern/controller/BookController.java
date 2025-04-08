@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.BookRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.BookResponse;
@@ -23,46 +25,37 @@ import viettelsoftware.intern.service.impl.BookServiceImpl;
 public class BookController {
 
     BookServiceImpl bookServiceImpl;
+    private final ResponseFactory responseFactory;
 
     @PostMapping()
     @PreAuthorize("hasAuthority('BOOK_MANAGE')")
-    ApiResponse<BookResponse> create(@RequestBody BookRequest request) {
-        return ApiResponse.<BookResponse>builder()
-                .result(bookServiceImpl.create(request))
-                .build();
+    ResponseEntity<GeneralResponse<BookResponse>> create(@RequestBody BookRequest request) {
+        return responseFactory.success(bookServiceImpl.create(request));
     }
 
     @PutMapping("/{bookId}")
     @PreAuthorize("hasAuthority('BOOK_MANAGE')")
-    ApiResponse<BookResponse> update(@PathVariable String bookId, @RequestBody BookRequest request) {
-        return ApiResponse.<BookResponse>builder()
-                .result(bookServiceImpl.update(bookId, request))
-                .build();
+    ResponseEntity<GeneralResponse<BookResponse>> update(@PathVariable String bookId, @RequestBody BookRequest request) {
+        return responseFactory.success(bookServiceImpl.update(bookId, request));
     }
 
     @DeleteMapping("/{bookId}")
     @PreAuthorize("hasAuthority('BOOK_MANAGE')")
-    ApiResponse<Void> delete(@PathVariable String bookId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String bookId) {
         bookServiceImpl.delete(bookId);
-        return ApiResponse.<Void>builder()
-                .message("Book deleted successfully")
-                .build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/{bookId}")
     @PreAuthorize("hasAuthority('BOOK_VIEW')")
-    ApiResponse<BookResponse> getBook(@PathVariable String bookId) {
-        return ApiResponse.<BookResponse>builder()
-                .result(bookServiceImpl.getBook(bookId))
-                .build();
+    ResponseEntity<GeneralResponse<BookResponse>> getBook(@PathVariable String bookId) {
+        return responseFactory.success(bookServiceImpl.getBook(bookId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('BOOK_VIEW')")
-    ApiResponse<Page<BookResponse>> getAllBook(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<BookResponse>>builder()
-                .result(bookServiceImpl.getAllBooks(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<BookResponse>>> getAllBook(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(bookServiceImpl.getAllBooks(pageable));
     }
 
     @GetMapping("/export/excel")

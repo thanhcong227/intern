@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.CommentRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.CommentResponse;
@@ -24,46 +26,37 @@ import viettelsoftware.intern.service.impl.CommentServiceImpl;
 public class CommentController {
 
     CommentServiceImpl commentServiceImpl;
+    private final ResponseFactory responseFactory;
 
     @PostMapping()
     @PreAuthorize("isAuthenticated()")
-    ApiResponse<CommentResponse> create(@RequestBody CommentRequest request) {
-        return ApiResponse.<CommentResponse>builder()
-                .result(commentServiceImpl.create(request))
-                .build();
+    ResponseEntity<GeneralResponse<CommentResponse>> create(@RequestBody CommentRequest request) {
+        return responseFactory.success(commentServiceImpl.create(request));
     }
 
     @PutMapping("/{commentId}")
     @PreAuthorize("hasAnyAuthority('COMMENT_MANAGE', 'COMMENT_EDIT_OWN')")
-    ApiResponse<CommentEntity> update(@PathVariable String commentId, @RequestBody CommentEntity request) {
-        return ApiResponse.<CommentEntity>builder()
-                .result(commentServiceImpl.update(commentId, request))
-                .build();
+    ResponseEntity<GeneralResponse<CommentResponse>> update(@PathVariable String commentId, @RequestBody CommentRequest request) {
+        return responseFactory.success(commentServiceImpl.create(request));
     }
 
     @DeleteMapping("/{commentId}")
     @PreAuthorize("hasAnyAuthority('COMMENT_MANAGE', 'COMMENT_DELETE_OWN')")
-    ApiResponse<Void> delete(@PathVariable String commentId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String commentId) {
         commentServiceImpl.delete(commentId);
-        return ApiResponse.<Void>builder()
-                .message("Comment deleted successfully")
-                .build();
+        return responseFactory.success(commentServiceImpl);
     }
 
     @GetMapping("/{commentId}")
     @PreAuthorize("hasAuthority('COMMENT_VIEW')")
-    ApiResponse<CommentEntity> getComment(@PathVariable String commentId) {
-        return ApiResponse.<CommentEntity>builder()
-                .result(commentServiceImpl.getComment(commentId))
-                .build();
+    ResponseEntity<GeneralResponse<CommentResponse>> getComment(@PathVariable String commentId) {
+        return responseFactory.success(commentServiceImpl.getComment(commentId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('COMMENT_VIEW')")
-    ApiResponse<Page<CommentEntity>> getAllComments(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<CommentEntity>>builder()
-                .result(commentServiceImpl.getAllComments(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<CommentResponse>>> getAllComments(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(commentServiceImpl.getAllComments(pageable));
     }
 
     @GetMapping("/export/excel")

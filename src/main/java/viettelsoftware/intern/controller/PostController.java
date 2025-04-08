@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.PostRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.PostResponse;
@@ -24,46 +26,37 @@ import viettelsoftware.intern.service.impl.PostServiceImpl;
 public class PostController {
 
     PostServiceImpl postServiceImpl;
+    private final ResponseFactory responseFactory;
 
     @PostMapping()
     @PreAuthorize("hasAuthority('POST_MANAGE')")
-    ApiResponse<PostResponse> create(@RequestBody PostRequest request) {
-        return ApiResponse.<PostResponse>builder()
-                .result(postServiceImpl.create(request))
-                .build();
+    ResponseEntity<GeneralResponse<PostResponse>> create(@RequestBody PostRequest request) {
+        return responseFactory.success(postServiceImpl.create(request));
     }
 
     @PutMapping("/{postId}")
     @PreAuthorize("hasAnyAuthority('POST_MANAGE','POST_EDIT_OWN')")
-    ApiResponse<PostEntity> update(@PathVariable String postId, @RequestBody PostEntity request) {
-        return ApiResponse.<PostEntity>builder()
-                .result(postServiceImpl.update(postId, request))
-                .build();
+    ResponseEntity<GeneralResponse<PostResponse>> update(@PathVariable String postId, @RequestBody PostEntity request) {
+        return responseFactory.success(postServiceImpl.update(postId, request));
     }
 
     @DeleteMapping("/{postId}")
     @PreAuthorize("hasAnyAuthority('POST_MANAGE','POST_DELETE_OWN')")
-    ApiResponse<Void> delete(@PathVariable String postId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String postId) {
         postServiceImpl.delete(postId);
-        return ApiResponse.<Void>builder()
-                .message("Post deleted successfully")
-                .build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/{postId}")
     @PreAuthorize("hasAuthority('POST_VIEW_ALL')")
-    ApiResponse<PostEntity> getPost(@PathVariable String postId) {
-        return ApiResponse.<PostEntity>builder()
-                .result(postServiceImpl.getPost(postId))
-                .build();
+    ResponseEntity<GeneralResponse<PostResponse>> getPost(@PathVariable String postId) {
+        return responseFactory.success(postServiceImpl.getPost(postId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('POST_VIEW_ALL')")
-    ApiResponse<Page<PostEntity>> getAllPosts(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<PostEntity>>builder()
-                .result(postServiceImpl.getAllPosts(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<PostResponse>>> getAllPosts(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(postServiceImpl.getAllPosts(pageable));
     }
 
     @GetMapping("/export/excel")

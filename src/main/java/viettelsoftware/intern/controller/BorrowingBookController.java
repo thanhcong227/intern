@@ -6,8 +6,11 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.BorrowingBookRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.BorrowingBookResponse;
@@ -22,47 +25,38 @@ import java.util.List;
 public class BorrowingBookController {
 
     BorrowingBookServiceImpl borrowingBookServiceImpl;
+    private final ResponseFactory responseFactory;
 
     @PostMapping("/{borrowingBookId}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
-    ApiResponse<BorrowingBookResponse> create(@PathVariable String borrowingBookId, @RequestBody List<BorrowingBookRequest> requests) {
-        return ApiResponse.<BorrowingBookResponse>builder()
-                .result(borrowingBookServiceImpl.create(borrowingBookId, requests))
-                .build();
+    ResponseEntity<GeneralResponse<BorrowingBookResponse>> create(@PathVariable String borrowingBookId, @RequestBody List<BorrowingBookRequest> requests) {
+        return responseFactory.success(borrowingBookServiceImpl.create(borrowingBookId, requests));
     }
 
     @PutMapping("/{borrowingBookId}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
-    public ApiResponse<BorrowingBookResponse> updateBorrowingBook(
+    ResponseEntity<GeneralResponse<BorrowingBookResponse>> updateBorrowingBook(
             @PathVariable String borrowingBookId,
             @RequestBody BorrowingBookRequest request) {
-        return ApiResponse.<BorrowingBookResponse>builder()
-                .result(borrowingBookServiceImpl.update(borrowingBookId, request))
-                .build();
+        return responseFactory.success(borrowingBookServiceImpl.update(borrowingBookId, request));
     }
 
     @DeleteMapping("/{borrowingBookId}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
-    ApiResponse<Void> delete(@PathVariable String borrowingBookId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String borrowingBookId) {
         borrowingBookServiceImpl.delete(borrowingBookId);
-        return ApiResponse.<Void>builder()
-                .message("Borrowing deleted successfully")
-                .build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/{borrowingBookId}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
-    ApiResponse<BorrowingBookResponse> getBorrowing(@PathVariable String borrowingBookId) {
-        return ApiResponse.<BorrowingBookResponse>builder()
-                .result(borrowingBookServiceImpl.getBorrowingBook(borrowingBookId))
-                .build();
+    ResponseEntity<GeneralResponse<BorrowingBookResponse>> getBorrowing(@PathVariable String borrowingBookId) {
+        return responseFactory.success(borrowingBookServiceImpl.getBorrowingBook(borrowingBookId));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
-    ApiResponse<Page<BorrowingBookResponse>> getAllBorrowing(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<BorrowingBookResponse>>builder()
-                .result(borrowingBookServiceImpl.getAllBorrowingBooks(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<BorrowingBookResponse>>> getAllBorrowing(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(borrowingBookServiceImpl.getAllBorrowingBooks(pageable));
     }
 }

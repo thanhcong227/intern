@@ -10,10 +10,10 @@ public interface CommentService {
 
     CommentResponse create(CommentRequest request);
 
-    CommentEntity update(String commentId, CommentEntity request);
+    CommentEntity update(String commentId, CommentRequest request);
 
     void delete(String commentId);
-    CommentEntity getComment(String commentId);
-    Page<CommentEntity> getAllComments(Pageable pageable);
+    CommentResponse getComment(String commentId);
+    Page<CommentResponse> getAllComments(Pageable pageable);
     byte[] exportCommentsToExcel();
 }

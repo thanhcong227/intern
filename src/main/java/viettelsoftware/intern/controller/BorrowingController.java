@@ -3,6 +3,7 @@ package viettelsoftware.intern.controller;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.apache.coyote.Response;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -11,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.service.impl.BorrowingServiceImpl;
@@ -24,46 +27,37 @@ import java.util.Set;
 public class BorrowingController {
 
     BorrowingServiceImpl borrowingServiceImpl;
+    private final ResponseFactory responseFactory;
 
     @PostMapping()
     @PreAuthorize("hasAuthority('BORROWING_MANAGE')")
-    ApiResponse<BorrowingResponse> create(@RequestParam String userId, @RequestBody Set<String> bookIds) {
-        return ApiResponse.<BorrowingResponse>builder()
-                .result(borrowingServiceImpl.create(userId, bookIds))
-                .build();
+    ResponseEntity<GeneralResponse<BorrowingResponse>> create(@RequestParam String userId, @RequestBody Set<String> bookIds) {
+        return responseFactory.success(borrowingServiceImpl.create(userId, bookIds));
     }
 
     @PutMapping("/{borrowingId}")
     @PreAuthorize("hasAuthority('BORROWING_MANAGE')")
-    ApiResponse<BorrowingResponse> update(@PathVariable String borrowingId, @RequestBody Set<String> bookIds) {
-        return ApiResponse.<BorrowingResponse>builder()
-                .result(borrowingServiceImpl.update(borrowingId, bookIds))
-                .build();
+    ResponseEntity<GeneralResponse<BorrowingResponse>> update(@PathVariable String borrowingId, @RequestBody Set<String> bookIds) {
+        return responseFactory.success(borrowingServiceImpl.update(borrowingId, bookIds));
     }
 
     @DeleteMapping("/{borrowingId}")
     @PreAuthorize("hasAuthority('BORROWING_MANAGE')")
-    ApiResponse<Void> delete(@PathVariable String borrowingId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String borrowingId) {
         borrowingServiceImpl.delete(borrowingId);
-        return ApiResponse.<Void>builder()
-                .message("Borrowing deleted successfully")
-                .build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/{borrowingId}")
     @PreAuthorize("hasAuthority('BORROWING_VIEW')")
-    ApiResponse<BorrowingResponse> getBorrowing(@PathVariable String borrowingId) {
-        return ApiResponse.<BorrowingResponse>builder()
-                .result(borrowingServiceImpl.getBorrowing(borrowingId))
-                .build();
+    ResponseEntity<GeneralResponse<BorrowingResponse>> getBorrowing(@PathVariable String borrowingId) {
+        return responseFactory.success(borrowingServiceImpl.getBorrowing(borrowingId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('BORROWING_VIEW')")
-    ApiResponse<Page<BorrowingResponse>> getAllBorrowing(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<BorrowingResponse>>builder()
-                .result(borrowingServiceImpl.getAllBorrowing(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<BorrowingResponse>>> getAllBorrowing(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(borrowingServiceImpl.getAllBorrowing(pageable));
     }
 
     @GetMapping("/export/excel")

@@ -41,8 +41,7 @@ public class CustomLocaleResolver extends AcceptHeaderLocaleResolver implements 
     public ResourceBundleMessageSource messageSource() {
         ResourceBundleMessageSource rs = new ResourceBundleMessageSource();
         rs.setBasename("messages");
-//        rs.setDefaultEncoding("UTF-8");
-        rs.setDefaultEncoding("ISO-8859-1");
+        rs.setDefaultEncoding("UTF-8");
         rs.setUseCodeAsDefaultMessage(true);
         return rs;
     }

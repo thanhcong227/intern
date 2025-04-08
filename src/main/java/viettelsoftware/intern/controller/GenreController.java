@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.GenreRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.GenreResponse;
@@ -22,46 +24,37 @@ import viettelsoftware.intern.service.impl.GenreServiceImpl;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class GenreController {
     GenreServiceImpl genreServiceImpl;
+    ResponseFactory responseFactory;
 
     @PostMapping()
     @PreAuthorize("hasAuthority('GENRE_MANAGE')")
-    ApiResponse<GenreResponse> create(@RequestBody GenreRequest request) {
-        return ApiResponse.<GenreResponse>builder()
-                .result(genreServiceImpl.create(request))
-                .build();
+    ResponseEntity<GeneralResponse<GenreResponse>> create(@RequestBody GenreRequest request) {
+        return responseFactory.success(genreServiceImpl.create(request));
     }
 
     @PutMapping("/{genreId}")
     @PreAuthorize("hasAuthority('GENRE_MANAGE')")
-    ApiResponse<GenreResponse> update(@PathVariable String genreId, @RequestBody GenreRequest request) {
-        return ApiResponse.<GenreResponse>builder()
-                .result(genreServiceImpl.update(genreId, request))
-                .build();
+    ResponseEntity<GeneralResponse<GenreResponse>> update(@PathVariable String genreId, @RequestBody GenreRequest request) {
+        return responseFactory.success(genreServiceImpl.update(genreId, request));
     }
 
     @DeleteMapping("/{genreId}")
     @PreAuthorize("hasAuthority('GENRE_MANAGE')")
-    ApiResponse<Void> delete(@PathVariable String genreId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String genreId) {
         genreServiceImpl.delete(genreId);
-        return ApiResponse.<Void>builder()
-                .message("Genre deleted successfully")
-                .build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/{genreId}")
     @PreAuthorize("hasAuthority('GENRE_VIEW')")
-    ApiResponse<GenreResponse> getGenre(@PathVariable String genreId) {
-        return ApiResponse.<GenreResponse>builder()
-                .result(genreServiceImpl.getGenre(genreId))
-                .build();
+    ResponseEntity<GeneralResponse<GenreResponse>> getGenre(@PathVariable String genreId) {
+        return responseFactory.success(genreServiceImpl.getGenre(genreId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('GENRE_VIEW')")
-    ApiResponse<Page<GenreResponse>> getAllGenres(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<GenreResponse>>builder()
-                .result(genreServiceImpl.getAllGenres(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<GenreResponse>>> getAllGenres(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(genreServiceImpl.getAllGenres(pageable));
     }
 
     @GetMapping("/export/excel")

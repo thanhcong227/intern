@@ -9,10 +9,10 @@ import viettelsoftware.intern.entity.PostEntity;
 public interface PostService {
     PostResponse create(PostRequest request);
 
-    PostEntity update(String postId, PostEntity request);
+    PostResponse update(String postId, PostEntity request);
 
     void delete(String postId);
-    PostEntity getPost(String postId);
-    Page<PostEntity> getAllPosts(Pageable pageable);
+    PostResponse getPost(String postId);
+    Page<PostResponse> getAllPosts(Pageable pageable);
     byte[] exportPostsToExcel();
 }

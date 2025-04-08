@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.RoleRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.RoleResponse;
@@ -23,46 +25,37 @@ import viettelsoftware.intern.service.impl.RoleServiceImpl;
 public class RoleController {
 
     RoleServiceImpl roleServiceImpl;
+    private final ResponseFactory responseFactory;
 
     @PostMapping()
     @PreAuthorize("hasAuthority('ROLE_MANAGE')")
-    ApiResponse<RoleResponse> create(@RequestBody RoleRequest request) {
-        return ApiResponse.<RoleResponse>builder()
-                .result(roleServiceImpl.create(request))
-                .build();
+    ResponseEntity<GeneralResponse<RoleResponse>> create(@RequestBody RoleRequest request) {
+        return responseFactory.success(roleServiceImpl.create(request));
     }
 
     @PutMapping("/{roleId}")
     @PreAuthorize("hasAuthority('ROLE_MANAGE')")
-    ApiResponse<RoleResponse> update(@PathVariable String roleId, @RequestBody RoleRequest request) {
-        return ApiResponse.<RoleResponse>builder()
-                .result(roleServiceImpl.update(roleId, request))
-                .build();
+    ResponseEntity<GeneralResponse<RoleResponse>> update(@PathVariable String roleId, @RequestBody RoleRequest request) {
+        return responseFactory.success(roleServiceImpl.update(roleId, request));
     }
 
     @DeleteMapping("/{roleId}")
     @PreAuthorize("hasAuthority('ROLE_MANAGE')")
-    ApiResponse<Void> delete(@PathVariable String roleId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String roleId) {
         roleServiceImpl.delete(roleId);
-        return ApiResponse.<Void>builder()
-                .message("Role deleted successfully")
-                .build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/{roleId}")
     @PreAuthorize("hasAuthority('ROLE_VIEW')")
-    ApiResponse<RoleResponse> getRole(@PathVariable String roleId) {
-        return ApiResponse.<RoleResponse>builder()
-                .result(roleServiceImpl.getRole(roleId))
-                .build();
+    ResponseEntity<GeneralResponse<RoleResponse>> getRole(@PathVariable String roleId) {
+        return responseFactory.success(roleServiceImpl.getRole(roleId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_VIEW')")
-    ApiResponse<Page<RoleResponse>> getAllRole(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<RoleResponse>>builder()
-                .result(roleServiceImpl.getAllRole(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<RoleResponse>>> getAllRole(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(roleServiceImpl.getAllRole(pageable));
     }
 
     @GetMapping("/export/excel")

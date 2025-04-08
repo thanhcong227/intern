@@ -12,6 +12,7 @@ import viettelsoftware.intern.dto.GenreStats;
 import viettelsoftware.intern.repository.BookRepository;
 import viettelsoftware.intern.repository.GenreRepository;
 import viettelsoftware.intern.repository.PostRepository;
+import viettelsoftware.intern.service.DashBoardService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class DashBoardServiceImpl {
+public class DashBoardServiceImpl implements DashBoardService {
 
     GenreRepository genreRepository;
     PostRepository postRepository;

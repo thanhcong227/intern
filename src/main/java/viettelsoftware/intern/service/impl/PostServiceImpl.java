@@ -13,12 +13,12 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.PostRequest;
 import viettelsoftware.intern.dto.response.PostResponse;
 import viettelsoftware.intern.entity.PostEntity;
 import viettelsoftware.intern.entity.UserEntity;
-import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.repository.PostRepository;
 import viettelsoftware.intern.repository.UserRepository;
 import viettelsoftware.intern.service.PostService;
@@ -44,7 +44,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public PostResponse create(PostRequest request) {
         if (postRepository.existsByTitle(request.getTitle())) {
-            throw new AppException(ErrorCode.POST_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.POST_EXISTED.getCode());
         }
 
         PostEntity post = new PostEntity();
@@ -56,7 +56,7 @@ public class PostServiceImpl implements PostService {
         String username = SecurityUtil.getCurrentUserLogin()
                 .orElseThrow(() -> {
                     log.error("Username not found in SecurityContext.");
-                    return new AppException(ErrorCode.USER_NOT_FOUND);
+                    return new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode());
                 });
 
         log.info("Current username: {}", username);
@@ -65,7 +65,7 @@ public class PostServiceImpl implements PostService {
         UserEntity user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> {
                     log.error("User not found: {}", username);
-                    return new AppException(ErrorCode.USER_NOT_FOUND);
+                    return new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode());
                 });
 
         post.setUser(user);
@@ -74,38 +74,40 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PostEntity update(String postId, PostEntity request) {
+    public PostResponse update(String postId, PostEntity request) {
         PostEntity post = postRepository.findById(postId)
-                .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND.getCode()));
 
         if (!post.getTitle().equals(request.getTitle()) && postRepository.existsByTitle(request.getTitle())) {
-            throw new AppException(ErrorCode.POST_EXISTED);
+            throw new CustomException(ResponseStatusCodeEnum.POST_EXISTED.getCode());
         }
 
         post.setTitle(request.getTitle());
         post.setBody(request.getBody());
         post.setUpdatedAt(LocalDate.now());
-
-        return postRepository.save(post);
+        postRepository.save(post);
+        return ConversionUtil.convertObject(post, x -> modelMapper.map(x, PostResponse.class));
     }
 
 
     @Override
     public void delete(String postId) {
         if (!postRepository.existsById(postId))
-            throw new AppException(ErrorCode.POST_NOT_FOUND);
+            throw new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND.getCode());
         postRepository.deleteById(postId);
     }
 
     @Override
-    public PostEntity getPost(String postId) {
-        return postRepository.findById(postId).orElseThrow(
-                () -> new AppException(ErrorCode.POST_NOT_FOUND));
+    public PostResponse getPost(String postId) {
+        PostEntity post = postRepository.findById(postId).orElseThrow(
+                () -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND.getCode()));
+        return ConversionUtil.convertObject(post, x -> modelMapper.map(x, PostResponse.class));
     }
 
     @Override
-    public Page<PostEntity> getAllPosts(Pageable pageable) {
-        return postRepository.findAll(pageable);
+    public Page<PostResponse> getAllPosts(Pageable pageable) {
+        Page<PostEntity> posts = postRepository.findAll(pageable);
+        return ConversionUtil.convertPage(posts, x -> modelMapper.map(x, PostResponse.class));
     }
 
     @Override

@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import viettelsoftware.intern.config.response.GeneralResponse;
+import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.PermissionRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.PermissionResponse;
@@ -23,46 +25,37 @@ import viettelsoftware.intern.service.impl.PermissionServiceImpl;
 public class PermissionController {
 
     PermissionServiceImpl permissionServiceImpl;
+    private final ResponseFactory responseFactory;
 
     @PostMapping()
     @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
-    ApiResponse<PermissionResponse> create(@RequestBody PermissionRequest request) {
-        return ApiResponse.<PermissionResponse>builder()
-                .result(permissionServiceImpl.create(request))
-                .build();
+    ResponseEntity<GeneralResponse<PermissionResponse>> create(@RequestBody PermissionRequest request) {
+        return responseFactory.success(permissionServiceImpl.create(request));
     }
 
     @PutMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
-    ApiResponse<PermissionResponse> update(@PathVariable String permissionId, @RequestBody PermissionRequest request) {
-        return ApiResponse.<PermissionResponse>builder()
-                .result(permissionServiceImpl.update(permissionId, request))
-                .build();
+    ResponseEntity<GeneralResponse<PermissionResponse>> update(@PathVariable String permissionId, @RequestBody PermissionRequest request) {
+        return responseFactory.success(permissionServiceImpl.update(permissionId, request));
     }
 
     @DeleteMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
-    ApiResponse<Void> delete(@PathVariable String permissionId) {
+    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String permissionId) {
         permissionServiceImpl.delete(permissionId);
-        return ApiResponse.<Void>builder()
-                .message("Permission deleted successfully")
-                .build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
-    ApiResponse<PermissionResponse> getPermission(@PathVariable String permissionId) {
-        return ApiResponse.<PermissionResponse>builder()
-                .result(permissionServiceImpl.getPermission(permissionId))
-                .build();
+    ResponseEntity<GeneralResponse<PermissionResponse>> getPermission(@PathVariable String permissionId) {
+        return responseFactory.success(permissionServiceImpl.getPermission(permissionId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
-    ApiResponse<Page<PermissionResponse>> getAllPermission(@PageableDefault(size = 5) Pageable pageable) {
-        return ApiResponse.<Page<PermissionResponse>>builder()
-                .result(permissionServiceImpl.getAllPermission(pageable))
-                .build();
+    ResponseEntity<GeneralResponse<Page<PermissionResponse>>> getAllPermission(@PageableDefault(size = 5) Pageable pageable) {
+        return responseFactory.success(permissionServiceImpl.getAllPermission(pageable));
     }
 
     @GetMapping("/export/excel")

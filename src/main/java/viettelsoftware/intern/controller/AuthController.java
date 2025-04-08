@@ -52,19 +52,19 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ApiResponse<AuthenticationResponse> refresh(@RequestBody RefreshTokenRequest token) {
-        return ApiResponse.<AuthenticationResponse>builder().result(authService.refreshToken(token)).build();
+    public ResponseEntity<GeneralResponse<AuthenticationResponse>> refresh(@RequestBody RefreshTokenRequest token) {
+        return responseFactory.success(authService.refreshToken(token));
     }
 
     @PostMapping("/forgotPassword")
-    public ApiResponse<Object> forgotPassword(@RequestBody ForgotPasswordRequest email) {
+    public ResponseEntity<GeneralResponse<Object>> forgotPassword(@RequestBody ForgotPasswordRequest email) {
         authService.forgotPassword(email);
-        return ApiResponse.builder().build();
+        return responseFactory.successNoData();
     }
 
     @GetMapping("/reset-password")
-    public ApiResponse<Object> resetPassword(@RequestParam String key) {
+    public ResponseEntity<GeneralResponse<Object>> resetPassword(@RequestParam String key) {
         authService.resetPassword(key);
-        return ApiResponse.builder().build();
+        return responseFactory.successNoData();
     }
 }
