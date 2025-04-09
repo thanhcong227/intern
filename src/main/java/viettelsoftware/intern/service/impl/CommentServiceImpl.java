@@ -13,6 +13,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import viettelsoftware.intern.config.modelmapper.CommentMapper;
 import viettelsoftware.intern.constant.ErrorCode;
 import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.CommentRequest;
@@ -34,6 +35,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -45,10 +47,11 @@ public class CommentServiceImpl implements CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
+    private final CommentMapper commentMapper;
 
     @Override
-    public CommentResponse create(CommentRequest request) {
-        PostEntity post = postRepository.findById(request.getPostId()).orElseThrow(
+    public CommentResponse create(String postId, CommentRequest request) {
+        PostEntity post = postRepository.findById(postId).orElseThrow(
                 () -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND));
 
         String username = SecurityUtil.getCurrentUserLogin().orElseThrow();
@@ -61,18 +64,19 @@ public class CommentServiceImpl implements CommentService {
                 .user(user)
                 .build();
         CommentEntity c = commentRepository.save(commentEntity);
-        return ConversionUtil.convertObject(c, x -> modelMapper.map(x, CommentResponse.class));
+        return ConversionUtil.convertObject(c, commentMapper::toDto);
     }
 
     @Override
-    public CommentEntity update(String commentId, CommentRequest request) {
+    public CommentResponse update(String commentId, CommentRequest request) {
         CommentEntity existingComment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.COMMENT_NOT_FOUND));
 
-        existingComment.setContent(request.getContent());
-        existingComment.setUpdatedAt(LocalDate.now());
+        Optional.ofNullable(request.getContent()).ifPresent(existingComment::setContent);
 
-        return commentRepository.save(existingComment);
+        existingComment.setUpdatedAt(LocalDate.now());
+        CommentEntity commentEntity = commentRepository.save(existingComment);
+        return modelMapper.map(commentEntity, CommentResponse.class);
     }
 
     @Override
@@ -86,13 +90,13 @@ public class CommentServiceImpl implements CommentService {
     public CommentResponse getComment(String commentId) {
         CommentEntity commentEntity = commentRepository.findById(commentId).orElseThrow(
                 () -> new CustomException(ResponseStatusCodeEnum.COMMENT_NOT_FOUND));
-        return ConversionUtil.convertObject(commentEntity, x -> modelMapper.map(x, CommentResponse.class));
+        return ConversionUtil.convertObject(commentEntity, commentMapper::toDto);
     }
 
     @Override
     public Page<CommentResponse> getAllComments(Pageable pageable) {
         Page<CommentEntity> comments = commentRepository.findAll(pageable);
-        return ConversionUtil.convertPage(comments, x -> modelMapper.map(x, CommentResponse.class));
+        return ConversionUtil.convertPage(comments, commentMapper::toDto);
     }
 
     @Override

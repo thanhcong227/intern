@@ -8,9 +8,9 @@ import viettelsoftware.intern.entity.CommentEntity;
 
 public interface CommentService {
 
-    CommentResponse create(CommentRequest request);
+    CommentResponse create(String postId, CommentRequest request);
 
-    CommentEntity update(String commentId, CommentRequest request);
+    CommentResponse update(String commentId, CommentRequest request);
 
     void delete(String commentId);
     CommentResponse getComment(String commentId);

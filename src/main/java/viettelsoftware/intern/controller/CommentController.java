@@ -14,48 +14,57 @@ import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.config.response.GeneralResponse;
 import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.CommentRequest;
-import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.CommentResponse;
-import viettelsoftware.intern.entity.CommentEntity;
 import viettelsoftware.intern.service.impl.CommentServiceImpl;
 
 @RestController
-@RequestMapping("/comment")
+@RequestMapping("/post/{postId}/comments")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CommentController {
 
     CommentServiceImpl commentServiceImpl;
-    private final ResponseFactory responseFactory;
+    ResponseFactory responseFactory;
 
-    @PostMapping()
+    @PostMapping
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<GeneralResponse<CommentResponse>> create(@RequestBody CommentRequest request) {
-        return responseFactory.success(commentServiceImpl.create(request));
+    public ResponseEntity<GeneralResponse<CommentResponse>> create(
+            @PathVariable String postId,
+            @RequestBody CommentRequest request) {
+        return responseFactory.success(commentServiceImpl.create(postId, request));
     }
 
     @PutMapping("/{commentId}")
     @PreAuthorize("hasAnyAuthority('COMMENT_MANAGE', 'COMMENT_EDIT_OWN')")
-    ResponseEntity<GeneralResponse<CommentResponse>> update(@PathVariable String commentId, @RequestBody CommentRequest request) {
-        return responseFactory.success(commentServiceImpl.create(request));
+    public ResponseEntity<GeneralResponse<CommentResponse>> update(
+            @PathVariable String postId,
+            @PathVariable String commentId,
+            @RequestBody CommentRequest request) {
+        return responseFactory.success(commentServiceImpl.update(commentId, request));
     }
 
     @DeleteMapping("/{commentId}")
     @PreAuthorize("hasAnyAuthority('COMMENT_MANAGE', 'COMMENT_DELETE_OWN')")
-    ResponseEntity<GeneralResponse<Object>> delete(@PathVariable String commentId) {
+    public ResponseEntity<GeneralResponse<Object>> delete(
+            @PathVariable String postId,
+            @PathVariable String commentId) {
         commentServiceImpl.delete(commentId);
-        return responseFactory.success(commentServiceImpl);
+        return responseFactory.success("Xoá comment thành công");
     }
 
     @GetMapping("/{commentId}")
     @PreAuthorize("hasAuthority('COMMENT_VIEW')")
-    ResponseEntity<GeneralResponse<CommentResponse>> getComment(@PathVariable String commentId) {
+    public ResponseEntity<GeneralResponse<CommentResponse>> getComment(
+            @PathVariable String postId,
+            @PathVariable String commentId) {
         return responseFactory.success(commentServiceImpl.getComment(commentId));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('COMMENT_VIEW')")
-    ResponseEntity<GeneralResponse<Page<CommentResponse>>> getAllComments(@PageableDefault(size = 5) Pageable pageable) {
+    public ResponseEntity<GeneralResponse<Page<CommentResponse>>> getAllComments(
+            @PathVariable String postId,
+            @PageableDefault(size = 5) Pageable pageable) {
         return responseFactory.success(commentServiceImpl.getAllComments(pageable));
     }
 

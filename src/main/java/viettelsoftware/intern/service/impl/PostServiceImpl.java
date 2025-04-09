@@ -13,6 +13,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import viettelsoftware.intern.config.modelmapper.PostMapper;
 import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.PostRequest;
 import viettelsoftware.intern.dto.response.PostResponse;
@@ -30,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,8 +40,9 @@ import java.util.List;
 public class PostServiceImpl implements PostService {
 
     PostRepository postRepository;
-    private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    UserRepository userRepository;
+    ModelMapper modelMapper;
+    PostMapper postMapper;
 
     @Override
     public PostResponse create(PostRequest request) {
@@ -70,23 +73,29 @@ public class PostServiceImpl implements PostService {
 
         post.setUser(user);
         postRepository.save(post);
-        return ConversionUtil.convertObject(post, x -> modelMapper.map(x, PostResponse.class));
+        return ConversionUtil.convertObject(post, postMapper::toDto);
     }
 
     @Override
-    public PostResponse update(String postId, PostEntity request) {
+    public PostResponse update(String postId, PostRequest request) {
         PostEntity post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND));
 
-        if (!post.getTitle().equals(request.getTitle()) && postRepository.existsByTitle(request.getTitle())) {
-            throw new CustomException(ResponseStatusCodeEnum.POST_EXISTED);
-        }
+        Optional.ofNullable(request.getTitle())
+                .filter(title -> !title.equals(post.getTitle()))
+                .ifPresent(title -> {
+                    if (postRepository.existsByTitle(title)) {
+                        throw new CustomException(ResponseStatusCodeEnum.POST_EXISTED);
+                    }
+                    post.setTitle(title);
+                });
 
-        post.setTitle(request.getTitle());
-        post.setBody(request.getBody());
+        Optional.ofNullable(request.getBody()).ifPresent(post::setBody);
+
         post.setUpdatedAt(LocalDate.now());
-        postRepository.save(post);
-        return ConversionUtil.convertObject(post, x -> modelMapper.map(x, PostResponse.class));
+
+        PostEntity updated = postRepository.save(post);
+        return modelMapper.map(updated, PostResponse.class);
     }
 
 
@@ -101,13 +110,13 @@ public class PostServiceImpl implements PostService {
     public PostResponse getPost(String postId) {
         PostEntity post = postRepository.findById(postId).orElseThrow(
                 () -> new CustomException(ResponseStatusCodeEnum.POST_NOT_FOUND));
-        return ConversionUtil.convertObject(post, x -> modelMapper.map(x, PostResponse.class));
+        return ConversionUtil.convertObject(post, postMapper::toDto);
     }
 
     @Override
     public Page<PostResponse> getAllPosts(Pageable pageable) {
         Page<PostEntity> posts = postRepository.findAll(pageable);
-        return ConversionUtil.convertPage(posts, x -> modelMapper.map(x, PostResponse.class));
+        return ConversionUtil.convertPage(posts, postMapper::toDto);
     }
 
     @Override

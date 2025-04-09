@@ -38,16 +38,16 @@ public class UserController {
     UserServiceImpl userServiceImpl;
     ResponseFactory responseFactory;
 
-    @PostMapping()
+    @PostMapping("/register")
     @PreAuthorize("hasAuthority('USER_MANAGE')")
     ResponseEntity<GeneralResponse<UserResponse>> create(@RequestBody @Valid UserRequest request) {
         return responseFactory.success(userServiceImpl.create(request));
     }
 
-    @PutMapping()
+    @PutMapping("/{userId}")
     @PreAuthorize("hasAuthority('USER_MANAGE')")
-    ResponseEntity<GeneralResponse<UserResponse>> update(@RequestBody UserUpdateRequest request){
-        return responseFactory.success(userServiceImpl.update(request));
+    ResponseEntity<GeneralResponse<UserResponse>> update(@PathVariable String userId, @RequestBody UserUpdateRequest request){
+        return responseFactory.success(userServiceImpl.update(userId, request));
     }
 
     @DeleteMapping("/{userId}")

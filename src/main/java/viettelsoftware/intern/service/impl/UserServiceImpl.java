@@ -55,41 +55,44 @@ public class UserServiceImpl implements UserService {
             throw new CustomException(ResponseStatusCodeEnum.USER_EXISTED.getCode());
         UserEntity userEntity = ConversionUtil.convertObject(request, x -> modelMapper.map(x, UserEntity.class));
         userEntity.setPassword(passwordEncoder.encode(request.getPassword()));
-        Set<RoleEntity> roles = request.getRoles().stream()
-                .map(role -> roleRepository.findByName(role.getName())
-                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND.getCode())))
-                .collect(Collectors.toSet());
-
-        userEntity.setRoles(roles);
+        if (request.getRoles() == null || request.getRoles().isEmpty()) {
+            RoleEntity role = roleRepository.findByName("MEMBER")
+                    .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND.getCode()));
+            userEntity.setRoles(Set.of(role));
+        } else {
+            Set<RoleEntity> roles = request.getRoles().stream()
+                    .map(role -> roleRepository.findByName(role.getName())
+                            .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND.getCode())))
+                    .collect(Collectors.toSet());
+            userEntity.setRoles(roles);
+        }
         UserEntity response = userRepository.save(userEntity);
         return ConversionUtil.convertObject(response, x -> modelMapper.map(x, UserResponse.class));
     }
 
 
     @Override
-    public UserResponse update(UserUpdateRequest request) {
-        UserEntity userEntity = userRepository.findById(request.getUserId())
+    public UserResponse update(String userId, UserUpdateRequest request) {
+        UserEntity userEntity = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode()));
 
-        if (request.getUsername() != null) {
-            if (!userEntity.getUsername().equals(request.getUsername()) && userRepository.existsByUsername(request.getUsername())) {
-                throw new CustomException(ResponseStatusCodeEnum.USER_EXISTED.getCode());
-            }
-            userEntity.setUsername(request.getUsername());
-        }
-        if (request.getFullName() != null) {
-            userEntity.setFullName(request.getFullName());
-        }
-        if (request.getEmail() != null) {
-            userEntity.setEmail(request.getEmail());
-        }
-        if (request.getPhone() != null) {
-            userEntity.setPhone(request.getPhone());
-        }
-        if (request.getAddress() != null) {
-            userEntity.setAddress(request.getAddress());
-        }
+        // Update username nếu khác và hợp lệ
+        Optional.ofNullable(request.getUsername())
+                .filter(username -> !username.equals(userEntity.getUsername()))
+                .ifPresent(username -> {
+                    if (userRepository.existsByUsername(username)) {
+                        throw new CustomException(ResponseStatusCodeEnum.USER_EXISTED.getCode());
+                    }
+                    userEntity.setUsername(username);
+                });
 
+        // Update các trường còn lại nếu có
+        Optional.ofNullable(request.getFullName()).ifPresent(userEntity::setFullName);
+        Optional.ofNullable(request.getEmail()).ifPresent(userEntity::setEmail);
+        Optional.ofNullable(request.getPhone()).ifPresent(userEntity::setPhone);
+        Optional.ofNullable(request.getAddress()).ifPresent(userEntity::setAddress);
+
+        // Update roles nếu có
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
             Set<RoleEntity> roles = request.getRoles().stream()
                     .map(role -> roleRepository.findByName(role.getName())
@@ -98,9 +101,9 @@ public class UserServiceImpl implements UserService {
             userEntity.setRoles(roles);
         }
 
-        // Lưu và trả về kết quả
-        return ConversionUtil.convertObject(userRepository.save(userEntity),
-                x -> modelMapper.map(x, UserResponse.class));
+        // Save và convert kết quả
+        UserEntity updated = userRepository.save(userEntity);
+        return modelMapper.map(updated, UserResponse.class);
     }
 
     @Override

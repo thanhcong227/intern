@@ -26,13 +26,8 @@ public class PostResponse {
     String body;
     LocalDate createdAt;
     LocalDate updatedAt;
-
-    @ManyToOne
-    @JoinColumn(name = "userId", nullable = false)
-    UserEntity user;
-
-    @OneToMany(mappedBy = "post")
-    Set<CommentEntity> comments;
+    String username;
+    Set<CommentResponse> comments;
 
     @Override
     public String toString() {

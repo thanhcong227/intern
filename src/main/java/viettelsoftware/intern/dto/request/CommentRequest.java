@@ -15,5 +15,4 @@ import lombok.experimental.FieldDefaults;
 public class CommentRequest {
 
     String content;
-    String postId;
 }

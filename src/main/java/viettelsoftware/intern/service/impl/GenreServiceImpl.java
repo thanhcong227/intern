@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,6 +44,7 @@ public class GenreServiceImpl implements GenreService {
     GenreRepository genreRepository;
     GenreMapper genreMapper;
     BookRepository bookRepository;
+    private final ModelMapper modelMapper;
 
     @Override
     public GenreResponse create(GenreRequest request) {
@@ -62,21 +65,28 @@ public class GenreServiceImpl implements GenreService {
         GenreEntity existingGenre = genreRepository.findById(genreId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.GENRE_NOT_FOUND));
 
-        if (!existingGenre.getName().equals(request.getName()) && genreRepository.existsByName(request.getName())) {
-            throw new CustomException(ResponseStatusCodeEnum.GENRE_EXISTED);
+        Optional.ofNullable(request.getName())
+                .filter(name -> !name.equals(existingGenre.getName()))
+                .ifPresent(name -> {
+                    if (genreRepository.existsByName(name)) {
+                        throw new CustomException(ResponseStatusCodeEnum.GENRE_EXISTED);
+                    }
+                    existingGenre.setName(name);
+                });
+
+        if (request.getBooks() != null && !request.getBooks().isEmpty()) {
+            Set<BookEntity> books = request.getBooks().stream()
+                    .map(bookRequest -> bookRepository.findByTitle(bookRequest.getTitle())
+                            .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND)))
+                    .collect(Collectors.toSet());
+            existingGenre.setBooks(books);
         }
 
-        Set<BookEntity> books = request.getBooks().stream()
-                .map(bookRequest -> bookRepository.findByTitle(bookRequest.getTitle())
-                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND)))
-                .collect(Collectors.toSet());
-
-        existingGenre.setName(request.getName());
-        existingGenre.setBooks(books);
         existingGenre.setUpdatedAt(LocalDate.now());
 
-        return genreMapper.toGenreResponse(genreRepository.save(existingGenre));
+        return modelMapper.map(genreRepository.save(existingGenre), GenreResponse.class);
     }
+
 
     @Override
     public void delete(String genreId) {

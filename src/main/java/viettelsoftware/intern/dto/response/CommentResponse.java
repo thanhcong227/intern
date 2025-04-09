@@ -20,4 +20,5 @@ public class CommentResponse {
     String content;
     LocalDate createdAt;
     LocalDate updatedAt;
+    String username;
 }

@@ -71,17 +71,23 @@ public class PermissionServiceImpl implements PermissionService {
         PermissionEntity existingPermission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.PERMISSION_NOT_FOUND));
 
-        if (!existingPermission.getName().equals(request.getName()) && permissionRepository.existsByName(request.getName())) {
-            throw new CustomException(ResponseStatusCodeEnum.PERMISSION_EXISTED);
+        Optional.ofNullable(request.getName())
+                .filter(name -> !name.equals(existingPermission.getName()))
+                .ifPresent(name -> {
+                    if (permissionRepository.existsByName(name)) {
+                        throw new CustomException(ResponseStatusCodeEnum.PERMISSION_EXISTED);
+                    }
+                    existingPermission.setName(name);
+                });
+
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+            Set<RoleEntity> roles = request.getRoles().stream()
+                    .map(roleRequest -> roleRepository.findByName(roleRequest.getName())
+                            .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND)))
+                    .collect(Collectors.toSet());
+            existingPermission.setRoles(roles);
         }
 
-        Set<RoleEntity> roles = request.getRoles().stream()
-                .map(roleRequest -> roleRepository.findByName(roleRequest.getName())
-                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND)))
-                .collect(Collectors.toSet());
-
-        existingPermission.setName(request.getName());
-        existingPermission.setRoles(roles);
         existingPermission.setUpdatedAt(LocalDate.now());
 
         return permissionMapper.toPermissionResponse(permissionRepository.save(existingPermission));

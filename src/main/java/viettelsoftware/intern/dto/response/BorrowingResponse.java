@@ -2,12 +2,9 @@ package viettelsoftware.intern.dto.response;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import viettelsoftware.intern.entity.BorrowingEntity;
-import viettelsoftware.intern.entity.BorrowingBook;
 
 import java.time.LocalDate;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter

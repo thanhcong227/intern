@@ -53,7 +53,7 @@ public class GenreController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('GENRE_VIEW')")
-    ResponseEntity<GeneralResponse<Page<GenreResponse>>> getAllGenres(@PageableDefault(size = 5) Pageable pageable) {
+    ResponseEntity<GeneralResponse<Page<GenreResponse>>> getAllGenres(@PageableDefault(size = 9) Pageable pageable) {
         return responseFactory.success(genreServiceImpl.getAllGenres(pageable));
     }
 

@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class BorrowingBookServiceImpl implements BorrowingBookService {
     BookRepository bookRepository;
     BorrowingBookMapper borrowingBookMapper;
     BorrowingRepository borrowingRepository;
+    private final ModelMapper modelMapper;
 
     @Override
     public BorrowingBookResponse create(String borrowingId, List<BorrowingBookRequest> requests) {
@@ -73,22 +75,36 @@ public class BorrowingBookServiceImpl implements BorrowingBookService {
         BorrowingBook borrowingBook = borrowingBookRepository.findById(borrowingBookId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND));
 
-        if (request.getQuantity() < 0) {
+        Integer newQuantity = request.getQuantity();
+
+        if (newQuantity < 0) {
             throw new CustomException(ResponseStatusCodeEnum.BOOK_QUANTITY_INVALID);
-        } else if (request.getQuantity() == 0) {
+        }
+
+        if (newQuantity == 0) {
             borrowingBookRepository.deleteById(borrowingBookId);
-            return borrowingBookMapper.toBorrowingBookResponse(borrowingBook);
-        } else if (request.getQuantity() > borrowingBook.getBook().getQuantity()) {
+            return modelMapper.map(borrowingBook, BorrowingBookResponse.class);
+        }
+
+        int oldQuantity = borrowingBook.getQuantity();
+        BookEntity book = borrowingBook.getBook();
+        int availableQuantity = book.getQuantity() + oldQuantity; // trả lại sách cũ trước khi check
+
+        if (newQuantity > availableQuantity) {
             throw new CustomException(ResponseStatusCodeEnum.BOOK_NOT_ENOUGH);
         }
-        BookEntity book = borrowingBook.getBook();
-        book.setQuantity(book.getQuantity() + borrowingBook.getQuantity() - request.getQuantity());
+
+        // Cập nhật tồn kho sách
+        book.setQuantity(availableQuantity - newQuantity);
         bookRepository.save(book);
-        borrowingBook.setQuantity(request.getQuantity());
+
+        // Cập nhật số lượng mượn
+        borrowingBook.setQuantity(newQuantity);
         borrowingBookRepository.save(borrowingBook);
 
-        return borrowingBookMapper.toBorrowingBookResponse(borrowingBook);
+        return modelMapper.map(borrowingBook, BorrowingBookResponse.class);
     }
+
 
 
 

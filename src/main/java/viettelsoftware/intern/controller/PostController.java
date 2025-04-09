@@ -36,7 +36,7 @@ public class PostController {
 
     @PutMapping("/{postId}")
     @PreAuthorize("hasAnyAuthority('POST_MANAGE','POST_EDIT_OWN')")
-    ResponseEntity<GeneralResponse<PostResponse>> update(@PathVariable String postId, @RequestBody PostEntity request) {
+    ResponseEntity<GeneralResponse<PostResponse>> update(@PathVariable String postId, @RequestBody PostRequest request) {
         return responseFactory.success(postServiceImpl.update(postId, request));
     }
 

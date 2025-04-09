@@ -18,6 +18,7 @@ public class BookRequest {
     String author;
     int year;
     int quantity;
+    int availableQuantity;
 
     Set<BorrowingRequest> borrowings;
     Set<GenreRequest> genres;

@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Setter
 @Getter
 @NoArgsConstructor
@@ -13,4 +15,6 @@ public class BorrowedBookInfo {
 
     private String bookTitle;
     private int quantity;
+    private LocalDate borrowedDate;
+    private LocalDate dueDate;
 }

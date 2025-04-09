@@ -9,7 +9,7 @@ import viettelsoftware.intern.entity.PostEntity;
 public interface PostService {
     PostResponse create(PostRequest request);
 
-    PostResponse update(String postId, PostEntity request);
+    PostResponse update(String postId, PostRequest request);
 
     void delete(String postId);
     PostResponse getPost(String postId);

@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,7 @@ public class BorrowingServiceImpl implements BorrowingService {
     BookRepository bookRepository;
     BorrowingMapper borrowingMapper;
     EmailUtil emailUtil;
+    private final ModelMapper modelMapper;
 
     @Override
     public BorrowingResponse create(String userId, Set<String> bookIds) {
@@ -81,17 +83,22 @@ public class BorrowingServiceImpl implements BorrowingService {
         BorrowingEntity borrowing = borrowingRepository.findById(borrowingId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND));
 
-        Set<BorrowingBook> updatedBorrowings = bookIds.stream().map(bookId -> {
-            BookEntity book = bookRepository.findById(bookId)
-                    .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
-            return BorrowingBook.builder()
-                    .borrowing(borrowing)
-                    .book(book)
-                    .build();
-        }).collect(Collectors.toSet());
+        if (bookIds != null && !bookIds.isEmpty()) {
+            Set<BorrowingBook> updatedBorrowings = bookIds.stream()
+                    .map(bookId -> {
+                        BookEntity book = bookRepository.findById(bookId)
+                                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
+                        return BorrowingBook.builder()
+                                .borrowing(borrowing)
+                                .book(book)
+                                .build();
+                    })
+                    .collect(Collectors.toSet());
 
-        borrowing.setBorrowings(updatedBorrowings);
-        return borrowingMapper.toBorrowingResponse(borrowingRepository.save(borrowing));
+            borrowing.setBorrowings(updatedBorrowings);
+        }
+
+        return modelMapper.map(borrowingRepository.save(borrowing), BorrowingResponse.class);
     }
 
     @Override
@@ -206,12 +213,22 @@ public class BorrowingServiceImpl implements BorrowingService {
             log.info("BorrowingBooks size: {}", b.getBorrowings().size());
         }
 
+//        // BORROWED, RETURNED, OVERDUE, return String status borrowed
+//        String status = "BORROWED";
+//        for (BorrowingEntity b : activeBorrowings) {
+//            if (b.getDueDate().isBefore(LocalDate.now())) {
+//                status = "OVERDUE";
+//            }
+//        }
+
         // Lấy tất cả BorrowingBook liên quan đến các Borrowing chưa trả
         return activeBorrowings.stream()
                 .flatMap(borrowing -> borrowing.getBorrowings().stream())
                 .map(borrowingBook -> new BorrowedBookInfo(
                         borrowingBook.getBook().getTitle(),
-                        borrowingBook.getQuantity()
+                        borrowingBook.getQuantity(),
+                        borrowingBook.getBorrowing().getBorrowedAt(),
+                        borrowingBook.getBorrowing().getDueDate()
                 ))
                 .collect(Collectors.toList());
     }

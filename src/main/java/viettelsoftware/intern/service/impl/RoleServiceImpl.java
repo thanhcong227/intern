@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,11 +25,13 @@ import viettelsoftware.intern.mapper.RoleMapper;
 import viettelsoftware.intern.repository.PermissionRepository;
 import viettelsoftware.intern.repository.RoleRepository;
 import viettelsoftware.intern.service.RoleService;
+import viettelsoftware.intern.util.ConversionUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,6 +44,7 @@ public class RoleServiceImpl implements RoleService {
     RoleRepository roleRepository;
     RoleMapper roleMapper;
     PermissionRepository permissionRepository;
+    ModelMapper modelMapper;
 
     @Override
     public RoleResponse create(RoleRequest request) {
@@ -68,20 +72,27 @@ public class RoleServiceImpl implements RoleService {
         RoleEntity role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND));
 
-        if (!role.getName().equals(request.getName()) && roleRepository.existsByName(request.getName())) {
-            throw new CustomException(ResponseStatusCodeEnum.ROLE_EXISTED);
+        Optional.ofNullable(request.getName())
+                .filter(name -> !name.equals(role.getName()))
+                .ifPresent(name -> {
+                    if (roleRepository.existsByName(name)) {
+                        throw new CustomException(ResponseStatusCodeEnum.ROLE_EXISTED);
+                    }
+                    role.setName(name);
+                });
+
+        if (request.getPermissionIds() != null && !request.getPermissionIds().isEmpty()) {
+            Set<PermissionEntity> updatedPermissions = request.getPermissionIds().stream()
+                    .map(p -> permissionRepository.findByName(p.getName())
+                            .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.PERMISSION_NOT_FOUND)))
+                    .collect(Collectors.toSet());
+            role.setPermissions(updatedPermissions);
         }
 
-        role.setName(request.getName());
-
-        Set<PermissionEntity> updatedPermissions = request.getPermissionIds().stream()
-                .map(permissionDto -> permissionRepository.findByName(permissionDto.getName())
-                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.PERMISSION_NOT_FOUND)))
-                .collect(Collectors.toSet());
-        role.setPermissions(updatedPermissions);
-
-        return roleMapper.toRoleResponse(roleRepository.save(role));
+        RoleEntity updated = roleRepository.save(role);
+        return modelMapper.map(updated, RoleResponse.class);
     }
+
 
     @Override
     public RoleResponse getRole(String roleId) {

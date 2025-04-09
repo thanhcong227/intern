@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.config.response.GeneralResponse;
 import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.BookRequest;
-import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.BookResponse;
 import viettelsoftware.intern.service.impl.BookServiceImpl;
 
@@ -54,7 +53,7 @@ public class BookController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('BOOK_VIEW')")
-    ResponseEntity<GeneralResponse<Page<BookResponse>>> getAllBook(@PageableDefault(size = 5) Pageable pageable) {
+    ResponseEntity<GeneralResponse<Page<BookResponse>>> getAllBook(@PageableDefault(size = 9) Pageable pageable) {
         return responseFactory.success(bookServiceImpl.getAllBooks(pageable));
     }
 
