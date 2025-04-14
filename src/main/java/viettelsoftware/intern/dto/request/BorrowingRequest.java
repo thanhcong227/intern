@@ -4,7 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
-import java.util.Set;
+import java.util.List;
 
 @Getter
 @Setter
@@ -13,10 +13,15 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BorrowingRequest {
+    private String userId;
+    private LocalDate borrowedAt;
+    private LocalDate dueDate;
+    private LocalDate returnedAt;
+    private List<BorrowedBookItem> borrowedBooks;
 
-    String userId;
-    LocalDate borrowedAt;
-    LocalDate dueDate;
-    LocalDate returnedAt;
-    private Set<String> bookIds;
+    @Data
+    public static class BorrowedBookItem {
+        private String bookId;
+        private int quantity;
+    }
 }

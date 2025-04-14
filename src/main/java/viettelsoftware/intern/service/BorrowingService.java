@@ -12,12 +12,12 @@ import java.util.Set;
 public interface BorrowingService {
     BorrowingResponse create(BorrowingRequest request);
 
-    BorrowingResponse update(String borrowingId, Set<String> bookIds);
+    BorrowingResponse update(String borrowingId, Set<BorrowingRequest.BorrowedBookItem> updatedBooks);
 
     void delete(String borrowingId);
     BorrowingResponse getBorrowing(String borrowingId);
     Page<BorrowingResponse> getAllBorrowing(Pageable pageable);
     byte[] exportBorrowingsToExcel();
-
+    int scheduleReminderEmails();
     List<BorrowedBookInfo> getBorrowedBooksByCurrentUser();
 }

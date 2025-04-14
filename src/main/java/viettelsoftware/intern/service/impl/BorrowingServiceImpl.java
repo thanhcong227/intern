@@ -14,29 +14,28 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.config.modelmapper.BorrowMapper;
 import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.BorrowedBookInfo;
 import viettelsoftware.intern.dto.request.BorrowingRequest;
-import viettelsoftware.intern.dto.request.EmailObjectRequest;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.entity.*;
-import viettelsoftware.intern.exception.AppException;
 import viettelsoftware.intern.exception.CustomException;
-import viettelsoftware.intern.mapper.BorrowingMapper;
 import viettelsoftware.intern.repository.BookRepository;
-import viettelsoftware.intern.repository.BorrowingBookRepository;
+import viettelsoftware.intern.repository.BorrowedBookDetailRepository;
 import viettelsoftware.intern.repository.BorrowingRepository;
+import viettelsoftware.intern.repository.EmailReminderRepository;
 import viettelsoftware.intern.repository.UserRepository;
 import viettelsoftware.intern.service.BorrowingService;
-import viettelsoftware.intern.util.EmailUtil;
 import viettelsoftware.intern.util.SecurityUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,14 +48,15 @@ import java.util.stream.Collectors;
 public class BorrowingServiceImpl implements BorrowingService {
 
     BorrowingRepository borrowingRepository;
-    BorrowingBookRepository borrowingBookRepository;
     UserRepository userRepository;
     BookRepository bookRepository;
-    BorrowingMapper borrowingMapper;
-    EmailUtil emailUtil;
-    private final ModelMapper modelMapper;
+    ModelMapper modelMapper;
+    EmailReminderRepository emailReminderRepository;
+    BorrowedBookDetailRepository borrowedBookDetailRepository;
+    BorrowMapper borrowMapper;
 
     @Override
+    @Transactional
     public BorrowingResponse create(BorrowingRequest request) {
         UserEntity user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
@@ -68,74 +68,110 @@ public class BorrowingServiceImpl implements BorrowingService {
                 .returnedAt(request.getReturnedAt())
                 .build();
 
-        borrowing = borrowingRepository.save(borrowing);
+        borrowing = borrowingRepository.save(borrowing); // lưu trước để lấy ID
 
-        BorrowingEntity finalBorrowing = borrowing;
-        Set<BorrowingBook> sets = request.getBookIds().stream().map(bookId -> {
-            BookEntity book = bookRepository.findById(bookId)
+        List<BookEntity> booksToUpdate = new ArrayList<>();
+        Set<BorrowedBookDetail> borrowedBookDetails = new HashSet<>();
+
+        for (BorrowingRequest.BorrowedBookItem borrowedBook : request.getBorrowedBooks()) {
+            BookEntity book = bookRepository.findById(borrowedBook.getBookId())
                     .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
 
-            if (book.getAvailableQuantity() <= 0) {
+            if (book.getAvailableQuantity() < borrowedBook.getQuantity()) {
                 throw new CustomException(ResponseStatusCodeEnum.BOOK_OUT_OF_STOCK);
             }
 
-            book.setAvailableQuantity(book.getAvailableQuantity() - 1);
-            bookRepository.save(book);
+            book.setAvailableQuantity(book.getAvailableQuantity() - borrowedBook.getQuantity());
+            booksToUpdate.add(book);
 
-            return BorrowingBook.builder()
-                    .borrowing(finalBorrowing)
+            BorrowedBookDetail detail = BorrowedBookDetail.builder()
+                    .borrowing(borrowing)
                     .book(book)
+                    .quantity(borrowedBook.getQuantity())
                     .build();
-        }).collect(Collectors.toSet());
 
-        borrowingBookRepository.saveAll(sets);
-        borrowing.setBorrowings(sets);
+            borrowedBookDetails.add(detail);
+        }
 
-        return borrowingMapper.toBorrowingResponse(borrowing);
+        bookRepository.saveAll(booksToUpdate);
+        borrowedBookDetailRepository.saveAll(borrowedBookDetails);
+        borrowing.setBorrowedBooks(borrowedBookDetails);
+
+        return borrowMapper.toDto(borrowing);
     }
 
-
-
     @Override
-    public BorrowingResponse update(String borrowingId, Set<String> bookIds) {
+    @Transactional
+    public BorrowingResponse update(String borrowingId, Set<BorrowingRequest.BorrowedBookItem> updatedBooks) {
         BorrowingEntity borrowing = borrowingRepository.findById(borrowingId)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND));
 
-        if (bookIds != null && !bookIds.isEmpty()) {
-            Set<BorrowingBook> updatedBorrowings = bookIds.stream()
-                    .map(bookId -> {
-                        BookEntity book = bookRepository.findById(bookId)
-                                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
-                        return BorrowingBook.builder()
-                                .borrowing(borrowing)
-                                .book(book)
-                                .build();
-                    })
-                    .collect(Collectors.toSet());
-
-            borrowing.setBorrowings(updatedBorrowings);
+        // 1. Trả lại số lượng sách cũ
+        Set<BorrowedBookDetail> oldDetails = borrowing.getBorrowedBooks();
+        for (BorrowedBookDetail oldDetail : oldDetails) {
+            BookEntity book = oldDetail.getBook();
+            book.setAvailableQuantity(book.getAvailableQuantity() + oldDetail.getQuantity());
+            bookRepository.save(book);
         }
 
-        return modelMapper.map(borrowingRepository.save(borrowing), BorrowingResponse.class);
+        // 2. Xóa toàn bộ chi tiết mượn cũ
+        borrowedBookDetailRepository.deleteAll(oldDetails);
+        borrowing.getBorrowedBooks().clear();
+
+        // 3. Tạo danh sách mới
+        Set<BorrowedBookDetail> newDetails = new HashSet<>();
+        List<BookEntity> booksToUpdate = new ArrayList<>();
+
+        for (BorrowingRequest.BorrowedBookItem item : updatedBooks) {
+            BookEntity book = bookRepository.findById(item.getBookId())
+                    .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
+
+            if (book.getAvailableQuantity() < item.getQuantity()) {
+                throw new CustomException(ResponseStatusCodeEnum.BOOK_OUT_OF_STOCK);
+            }
+
+            // Trừ số lượng sách mới
+            book.setAvailableQuantity(book.getAvailableQuantity() - item.getQuantity());
+            booksToUpdate.add(book);
+
+            BorrowedBookDetail detail = BorrowedBookDetail.builder()
+                    .borrowing(borrowing)
+                    .book(book)
+                    .quantity(item.getQuantity())
+                    .build();
+
+            newDetails.add(detail);
+        }
+
+        bookRepository.saveAll(booksToUpdate);
+        borrowedBookDetailRepository.saveAll(newDetails);
+        borrowing.setBorrowedBooks(newDetails);
+
+        return modelMapper.map(borrowing, BorrowingResponse.class);
     }
 
     @Override
-    public void delete(String permissionId) {
-        if (!borrowingRepository.existsById(permissionId))
+    public void delete(String borrowingId) {
+        if (!borrowingRepository.existsById(borrowingId))
             throw new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND);
-        borrowingRepository.deleteById(permissionId);
+        borrowingRepository.deleteById(borrowingId);
     }
 
     @Override
     public BorrowingResponse getBorrowing(String borrowingId) {
         BorrowingEntity borrowing = borrowingRepository.findById(borrowingId).orElseThrow(
                 () -> new CustomException(ResponseStatusCodeEnum.BORROWING_NOT_FOUND));
-        return borrowingMapper.toBorrowingResponse(borrowing);
+        return modelMapper.map(borrowing, BorrowingResponse.class);
     }
 
     @Override
     public Page<BorrowingResponse> getAllBorrowing(Pageable pageable) {
-        return borrowingRepository.findAll(pageable).map(borrowingMapper::toBorrowingResponse);
+        Page<BorrowingEntity> borrowings = borrowingRepository.findAll(pageable);
+        return borrowings.map(borrowing -> {
+            BorrowingResponse response = modelMapper.map(borrowing, BorrowingResponse.class);
+            response.setUsers(borrowing.getUser().getFullName());
+            return response;
+        });
     }
 
     @Override
@@ -177,43 +213,8 @@ public class BorrowingServiceImpl implements BorrowingService {
         }
     }
 
-    @Transactional
-    public int sendReminderEmails() {
-        LocalDate reminderDate = LocalDate.now().plusDays(2);
-        List<BorrowingEntity> borrowings = borrowingRepository.findByDueDate(reminderDate);
-
-        if (borrowings.isEmpty()) {
-            log.info("Không có người dùng nào cần nhận email nhắc nhở.");
-            return 0;
-        }
-
-        int count = 0;
-        for (BorrowingEntity borrowing : borrowings) {
-            String email = borrowing.getUser().getEmail();
-            String subject = "Thông báo sắp đến hạn trả sách";
-            Map<String, Object> params = new HashMap<>();
-            params.put("username", borrowing.getUser().getUsername());
-            params.put("dueDate", borrowing.getDueDate().toString());
-            params.put("books", borrowing.getBorrowings().stream()
-                    .map(b -> b.getBook().getTitle())
-                    .collect(Collectors.toList()));
-
-            EmailObjectRequest emailObjectRequest = EmailObjectRequest.builder()
-                    .emailTo(new String[]{email})
-                    .subject(subject)
-                    .template("email-reminder")
-                    .params(params)
-                    .build();
-
-            emailUtil.sendEmail(emailObjectRequest);
-            log.info("Đã gửi email nhắc nhở đến {}", email);
-            count++;
-        }
-
-        return count;
-    }
-
     @Override
+    @Transactional(readOnly = true)
     public List<BorrowedBookInfo> getBorrowedBooksByCurrentUser() {
         String username = SecurityUtil.getCurrentUserLogin()
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
@@ -226,34 +227,71 @@ public class BorrowingServiceImpl implements BorrowingService {
         List<BorrowingEntity> activeBorrowings = borrowingRepository.findByUserAndReturnedAtIsNull(user);
         log.info("Active borrowings: {}", activeBorrowings.size());
 
-        // Gom sách theo tiêu đề và tổng hợp quantity
-        Map<String, List<BorrowingBook>> groupedByTitle = activeBorrowings.stream()
-                .flatMap(b -> b.getBorrowings().stream())
-                .collect(Collectors.groupingBy(bb -> bb.getBook().getTitle()));
+        // Gom nhóm sách theo tiêu đề
+        Map<String, List<BorrowedBookDetail>> groupedByTitle = activeBorrowings.stream()
+                .flatMap(b -> b.getBorrowedBooks().stream())
+                .collect(Collectors.groupingBy(bd -> bd.getBook().getTitle()));
 
-        // Chuyển về danh sách BorrowedBookInfo gộp
         return groupedByTitle.entrySet().stream()
                 .map(entry -> {
                     String title = entry.getKey();
-                    List<BorrowingBook> borrowingBooks = entry.getValue();
+                    List<BorrowedBookDetail> details = entry.getValue();
 
-                    int totalQuantity = borrowingBooks.stream()
-                            .mapToInt(BorrowingBook::getQuantity)
+                    int totalQuantity = details.stream()
+                            .mapToInt(BorrowedBookDetail::getQuantity)
                             .sum();
 
-                    // Lấy ngày mượn sớm nhất và hạn trả trễ nhất
-                    LocalDate earliestBorrowedAt = borrowingBooks.stream()
-                            .map(bb -> bb.getBorrowing().getBorrowedAt())
+                    LocalDate earliestBorrowedAt = details.stream()
+                            .map(bd -> bd.getBorrowing().getBorrowedAt())
                             .min(LocalDate::compareTo)
                             .orElse(null);
 
-                    LocalDate latestDueDate = borrowingBooks.stream()
-                            .map(bb -> bb.getBorrowing().getDueDate())
+                    LocalDate latestDueDate = details.stream()
+                            .map(bd -> bd.getBorrowing().getDueDate())
                             .max(LocalDate::compareTo)
                             .orElse(null);
 
                     return new BorrowedBookInfo(title, totalQuantity, earliestBorrowedAt, latestDueDate);
                 })
-                .toList();
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public int scheduleReminderEmails() {
+        LocalDate reminderDate = LocalDate.now().plusDays(2);
+        List<BorrowingEntity> borrowings = borrowingRepository.findByDueDate(reminderDate);
+
+        if (borrowings.isEmpty()) {
+            log.info("Không có người dùng nào cần nhận email nhắc nhở.");
+            return 0;
+        }
+
+        int count = 0;
+        for (BorrowingEntity borrowing : borrowings) {
+            UserEntity user = borrowing.getUser();
+            String email = user.getEmail();
+            String subject = "Thông báo sắp đến hạn trả sách";
+
+            List<String> bookTitles = borrowing.getBorrowedBooks().stream()
+                    .map(detail -> detail.getBook().getTitle())
+                    .toList();
+
+            EmailReminder emailReminder = EmailReminder.builder()
+                    .email(email)
+                    .subject(subject)
+                    .username(user.getUsername())
+                    .dueDate(borrowing.getDueDate().toString())
+                    .bookTitles(bookTitles)
+                    .scheduledTime(LocalDateTime.now().plusMinutes(5))
+                    .sent(false)
+                    .build();
+
+            emailReminderRepository.save(emailReminder);
+            log.info("Đã lưu email nhắc nhở cho {}", email);
+            count++;
+        }
+
+        return count;
     }
 }

@@ -7,7 +7,6 @@ import viettelsoftware.intern.dto.request.UserRequest;
 import viettelsoftware.intern.dto.request.UserSearchRequest;
 import viettelsoftware.intern.dto.request.UserUpdateRequest;
 import viettelsoftware.intern.dto.response.UserResponse;
-import viettelsoftware.intern.entity.UserEntity;
 
 import java.io.IOException;
 import java.util.List;
@@ -25,7 +24,7 @@ public interface UserService {
 
 //    List<UserResponse> importUsersFromExcel(MultipartFile file) throws IOException;
 
-    List<UserResponse> searchUsers(UserSearchRequest searchRequest);
+    Page<UserResponse> searchUsers(UserSearchRequest searchRequest, Pageable pageable);
 
     byte[] importUsersFromExcelAndGenerateErrorReport(MultipartFile file) throws IOException;
 }

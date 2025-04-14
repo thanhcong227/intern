@@ -9,7 +9,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,13 +21,11 @@ import viettelsoftware.intern.dto.request.UserSearchRequest;
 import viettelsoftware.intern.dto.request.UserUpdateRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.UserResponse;
-import viettelsoftware.intern.exception.AppException;
 import viettelsoftware.intern.service.impl.UserServiceImpl;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-@Slf4j
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -82,42 +79,21 @@ public class UserController {
     @PostMapping("/import")
     @PreAuthorize("hasAuthority('USER_IMPORT')")
     public ResponseEntity<byte[]> importUsersAndGetReport(@RequestParam("file") MultipartFile file) {
-        try {
-            byte[] reportBytes = userServiceImpl.importUsersFromExcelAndGenerateErrorReport(file);
-
+        byte[] reportData = userServiceImpl.importUsersFromExcelAndGenerateErrorReport(file);
+        if (reportData.length == 0) {
+            return ResponseEntity.ok("".getBytes(StandardCharsets.UTF_8));
+        } else {
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-
-            String originalFilename = file.getOriginalFilename();
-            String reportFilename = "import_report_" + (originalFilename != null ? originalFilename : "results.xlsx");
-            headers.setContentDispositionFormData("attachment", reportFilename);
-
-            return new ResponseEntity<>(reportBytes, headers, HttpStatus.OK);
-
-        } catch (AppException e) {
-            log.error("Import failed: {}", e.getMessage());
-            String errorMessage = "Error Code: " + e.getErrorCode() + ", Message: " + e.getMessage();
-            byte[] errorBytes = errorMessage.getBytes(StandardCharsets.UTF_8);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            return new ResponseEntity<>(errorBytes, headers, HttpStatus.INTERNAL_SERVER_ERROR);
-
-        } catch (Exception e) {
-            log.error("Unexpected error during import: {}", e.getMessage(), e);
-            String errorMessage = "Unexpected error: " + e.getMessage();
-            byte[] errorBytes = errorMessage.getBytes(StandardCharsets.UTF_8);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            return new ResponseEntity<>(errorBytes, headers, HttpStatus.INTERNAL_SERVER_ERROR);
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDispositionFormData("attachment", "user-import-errors.xlsx");
+            return ResponseEntity.ok().headers(headers).body(reportData);
         }
     }
 
     @PostMapping("/search")
-    public ApiResponse<List<UserResponse>> searchUsers(@RequestBody UserSearchRequest searchRequest) {
-        return ApiResponse.<List<UserResponse>>builder()
-                .result(userServiceImpl.searchUsers(searchRequest))
+    public ApiResponse<Page<UserResponse>> searchUsers(@RequestBody UserSearchRequest searchRequest, Pageable pageable) {
+        return ApiResponse.<Page<UserResponse>>builder()
+                .result(userServiceImpl.searchUsers(searchRequest, pageable))
                 .build();
     }
 }

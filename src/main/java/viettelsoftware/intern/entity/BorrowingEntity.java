@@ -5,7 +5,6 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -24,11 +23,11 @@ public class BorrowingEntity {
 
     @ManyToOne
     @JoinColumn(name = "userId", nullable = false)
-    private UserEntity user;
+    UserEntity user;
     LocalDate borrowedAt;
     LocalDate dueDate;
     LocalDate returnedAt;
 
-    @OneToMany(mappedBy = "borrowing")
-    Set<BorrowingBook> borrowings;
+    @OneToMany(mappedBy = "borrowing", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<BorrowedBookDetail> borrowedBooks;
 }

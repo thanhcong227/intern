@@ -1,5 +1,6 @@
 package viettelsoftware.intern.service.impl;
 
+import io.micrometer.common.util.StringUtils;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import viettelsoftware.intern.constant.AppConstant;
 import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.UserRequest;
 import viettelsoftware.intern.dto.request.UserSearchRequest;
@@ -170,7 +172,6 @@ public class UserServiceImpl implements UserService {
     private Object getUserFieldValue(UserEntity user, String fieldName) {
         try {
             Field field = UserEntity.class.getDeclaredField(fieldName);
-            field.setAccessible(true);
             return field.get(user);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             return null;
@@ -178,167 +179,178 @@ public class UserServiceImpl implements UserService {
     }
 
     public byte[] importUsersFromExcelAndGenerateErrorReport(MultipartFile file) {
-        validateFile(file); // Kiểm tra file trước
+        validateFile(file);
 
-        Workbook workbook = null;
-        InputStream inputStream = null;
+        List<Object[]> errorData = new ArrayList<>();
+        List<UserEntity> validUsersToSave = new ArrayList<>();
 
-        try {
-            inputStream = file.getInputStream();
-            String filename = file.getOriginalFilename();
-
-            // Xác định loại workbook dựa trên đuôi file
-            if (filename != null && filename.toLowerCase().endsWith(".xlsx")) {
-                workbook = new XSSFWorkbook(inputStream);
-            } else if (filename != null && filename.toLowerCase().endsWith(".xls")) {
-                workbook = new HSSFWorkbook(inputStream);
-            } else {
-                // Trường hợp này không nên xảy ra nếu validateFile chạy đúng
-                throw new CustomException(ResponseStatusCodeEnum.INVALID_FILE_FORMAT.getCode());
-            }
+        try (InputStream inputStream = file.getInputStream()) {
+            Workbook workbook = Objects.requireNonNull(file.getOriginalFilename()).toLowerCase().endsWith("xlsx") ?
+                    new XSSFWorkbook(inputStream) : new HSSFWorkbook(inputStream);
 
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rows = sheet.iterator();
 
-            int errorColumnIndex = -1; // Index cột lỗi, sẽ xác định từ header
+            // Skip header
+            if (rows.hasNext()) rows.next();
 
-            // Xử lý header và xác định/thêm cột lỗi
-            if (rows.hasNext()) {
-                Row headerRow = rows.next();
-                errorColumnIndex = headerRow.getLastCellNum(); // Mặc định là cột cuối cùng + 1
-                // Tùy chọn: Tìm xem có cột "Error" chưa, nếu chưa thì tạo mới
-                Cell errorHeaderCell = headerRow.createCell(errorColumnIndex);
-                errorHeaderCell.setCellValue("Import Errors"); // Đặt tên cho cột lỗi
-            }
+            Set<String> existingUsernames = new HashSet<>(userRepository.findAllUsernames());
+            Set<String> existingEmails = new HashSet<>(userRepository.findAllEmails());
 
-            if (errorColumnIndex == -1) {
-                throw new CustomException(ResponseStatusCodeEnum.FILE_PROCESSING_ERROR.getCode());
-            }
+            Set<String> seenUsernames = new HashSet<>();
+            Set<String> seenEmails = new HashSet<>();
 
+            RoleEntity userRole = roleRepository.findByName("USER")
+                    .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND.getCode()));
+            String password = passwordEncoder.encode("123456");
 
-            List<UserEntity> validUsersToSave = new ArrayList<>();
-
-            // Duyệt từng hàng dữ liệu
             while (rows.hasNext()) {
                 Row row = rows.next();
-                // Bỏ qua các hàng trống hoàn toàn (ví dụ)
-                if (isRowEmpty(row, errorColumnIndex)) {
-                    continue;
-                }
-
-                StringBuilder errorMessage = new StringBuilder();
+                Object[] rowData = new Object[6];
+                StringBuilder errorMsg = new StringBuilder();
                 boolean isValid = true;
 
                 String username = getCellStringValue(row.getCell(1));
-                String fullName = getCellStringValue(row.getCell(2)); // Có thể cho phép null/empty
+                String fullName = getCellStringValue(row.getCell(2));
                 String email = getCellStringValue(row.getCell(3));
                 String phone = getCellStringValue(row.getCell(4));
                 String address = getCellStringValue(row.getCell(5));
 
-                // Kiểm tra tính hợp lệ của dữ liệu
-                if (username == null || username.trim().isEmpty()) {
-                    errorMessage.append("Username is required. ");
-                    isValid = false;
-                } else if (userRepository.existsByUsername(username)) { // Kiểm tra tồn tại username
-                    errorMessage.append("Username already exists. ");
+                // Set rowData
+                rowData[0] = username;
+                rowData[1] = fullName;
+                rowData[2] = email;
+                rowData[3] = phone;
+                rowData[4] = address;
+
+                if(!seenUsernames.add(username)) {
+                    errorMsg.append("Duplicate username: ").append(username).append(". ");
                     isValid = false;
                 }
 
-                if (email == null || email.trim().isEmpty()) {
-                    errorMessage.append("Email is required. ");
-                    isValid = false;
-                } else if (!isValidEmailFormat(email)) { // Thêm kiểm tra định dạng email
-                    errorMessage.append("Invalid email format. ");
-                    isValid = false;
-                } else if (userRepository.existsByEmail(email)) { // Kiểm tra tồn tại email
-                    errorMessage.append("Email already exists. ");
+                if(!seenEmails.add(email)) {
+                    errorMsg.append("Duplicate email: ").append(email).append(". ");
                     isValid = false;
                 }
 
-                if (phone == null || phone.trim().isEmpty()) {
-                    errorMessage.append("Phone is required. ");
+                if (StringUtils.isBlank(username)) {
+                    errorMsg.append("Username is required. ");
                     isValid = false;
-                }
-                if (address == null || address.trim().isEmpty()) {
-                    errorMessage.append("Address is required. ");
+                } else if (existingUsernames.contains(username)) {
+                    errorMsg.append("Username already exists. ");
                     isValid = false;
                 }
 
-                // --- Xử lý kết quả ---
-                Cell errorCell = row.getCell(errorColumnIndex);
-                if (errorCell == null) {
-                    errorCell = row.createCell(errorColumnIndex);
+                if (StringUtils.isBlank(email)) {
+                    errorMsg.append("Email is required. ");
+                    isValid = false;
+                } else if (!email.matches(AppConstant.REGEX_EMAIL)) {
+                    errorMsg.append("Invalid email format. ");
+                    isValid = false;
+                } else if (existingEmails.contains(email)) {
+                    errorMsg.append("Email already exists. ");
+                    isValid = false;
+                }
+
+                if (StringUtils.isBlank(phone)) {
+                    errorMsg.append("Phone is required. ");
+                    isValid = false;
+                }
+
+                if (StringUtils.isBlank(address)) {
+                    errorMsg.append("Address is required. ");
+                    isValid = false;
                 }
 
                 if (!isValid) {
-                    // Ghi lỗi vào cột lỗi
-                    errorCell.setCellValue(errorMessage.toString().trim());
-                    log.warn("Validation failed for row {}: {}", row.getRowNum() + 1, errorMessage);
-                } else {
-                    // Xóa thông báo lỗi cũ (nếu có) và xử lý user hợp lệ
-                    errorCell.setCellValue(""); // Xóa lỗi nếu hàng này đã hợp lệ
+                    rowData[5] = errorMsg.toString().trim();
+                    errorData.add(rowData);
+                    continue;
+                }
+
+                try {
                     UserEntity user = new UserEntity();
                     user.setUsername(username);
-                    user.setFullName(fullName); // Đảm bảo xử lý null nếu cần
+                    user.setFullName(fullName);
                     user.setEmail(email);
                     user.setPhone(phone);
                     user.setAddress(address);
-                    user.setPassword(passwordEncoder.encode("123456")); // Mật khẩu mặc định
+                    user.setPassword(password); // Default password
+                    user.setRoles(Set.of(userRole));
 
-                    Set<RoleEntity> roles = new HashSet<>();
-                    RoleEntity userRole = roleRepository.findByName("MEMBER")
-                            .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.ROLE_NOT_FOUND.getCode()));
-                    roles.add(userRole);
-                    user.setRoles(roles);
-                    try {
-                        userRepository.save(user);
-                        log.info("Successfully imported user: {}", username);
-                    } catch (Exception ex) { // Bắt lỗi khi lưu (ví dụ: constraint violation dù đã check)
-                        log.error("Error saving valid user {} from row {}: {}", username, row.getRowNum() + 1, ex.getMessage());
-                        errorCell.setCellValue("Error saving user to database: " + ex.getMessage());
-                    }
                     validUsersToSave.add(user);
+                } catch (Exception e) {
+                    errorMsg.append("Error creating user: ").append(e.getMessage());
+                    rowData[5] = errorMsg.toString().trim();
                 }
             }
 
-            // Lưu tất cả user hợp lệ vào DB
             if (!validUsersToSave.isEmpty()) {
                 try {
                     userRepository.saveAll(validUsersToSave);
-                    log.info("Saved {} valid users to the database.", validUsersToSave.size());
                 } catch (Exception e) {
-                    log.error("Error bulk saving users: {}", e.getMessage());
                     throw new CustomException(ResponseStatusCodeEnum.DATABASE_ERROR.getCode());
                 }
             }
 
-            // Ghi workbook đã sửa đổi (có cột lỗi) vào byte array
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                workbook.write(outputStream);
-                return outputStream.toByteArray(); // Trả về dữ liệu file Excel dưới dạng byte array
+            if (!errorData.isEmpty()) {
+                return generateErrorReportExcel(errorData);
+            } else {
+                log.info("All users imported successfully.");
             }
+
+            return new byte[0];
 
         } catch (IOException e) {
             throw new CustomException(ResponseStatusCodeEnum.FILE_PROCESSING_ERROR.getCode());
-        } catch (CustomException e) { // Bắt lại CustomException để log và re-throw
-            throw e; // Re-throw CustomException
-        } catch (Exception e) { // Bắt các lỗi không mong muốn khác
-            throw new CustomException(ResponseStatusCodeEnum.UNKNOWN.getCode());
-        } finally {
-            if (workbook != null) {
-                try {
-                    workbook.close();
-                } catch (IOException e) {
-                    log.error("Error closing workbook: {}", e.getMessage(), e);
+        }
+    }
+
+    private byte[] generateErrorReportExcel(List<Object[]> errorData) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Error Report");
+
+            // Tạo tiêu đề
+            Row headerRow = sheet.createRow(0);
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Tạo các cột tiêu đề
+            String[] columns = {"Username", "Họ Tên", "Email", "Số Điện Thoại", "Địa Chỉ", "Lỗi"};
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Điền dữ liệu lỗi
+            int rowNum = 1;
+            for (Object[] rowData : errorData) {
+                Row row = sheet.createRow(rowNum++);
+                for (int i = 0; i < rowData.length; i++) {
+                    Cell cell = row.createCell(i);
+                    if (rowData[i] != null) {
+                        cell.setCellValue(rowData[i].toString());
+                    } else {
+                        cell.setCellValue("");
+                    }
                 }
             }
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    log.error("Error closing input stream: {}", e.getMessage(), e);
-                }
+
+            // Tự động điều chỉnh độ rộng cột
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
             }
+
+            // Chuyển workbook thành mảng byte
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+
+        } catch (IOException e) {
+            throw new CustomException(ResponseStatusCodeEnum.FILE_PROCESSING_ERROR.getCode());
         }
     }
 
@@ -356,65 +368,29 @@ public class UserServiceImpl implements UserService {
         if (!"xlsx".equals(fileExtension) && !"xls".equals(fileExtension)) {
             throw new CustomException(ResponseStatusCodeEnum.INVALID_FILE_FORMAT.getCode());
         }
-        // Optional: Check file size
-        // long maxSize = 5 * 1024 * 1024; // 5MB example
-        // if (file.getSize() > maxSize) {
-        //    throw new CustomException(ResponseStatusCodeEnum.FILE_TOO_LARGE, "File size exceeds the limit.");
-        // }
     }
-
-    private boolean isRowEmpty(Row row, int lastDataColumnIndex) {
-        if (row == null) {
-            return true;
-        }
-        for (int c = 0; c < lastDataColumnIndex; c++) { // Chỉ kiểm tra các cột dữ liệu
-            Cell cell = row.getCell(c, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-            if (cell != null && cell.getCellType() != CellType.BLANK) {
-                String value = getCellStringValue(cell);
-                if (value != null) return false; // Nếu có bất kỳ cell nào có giá trị thì không trống
-            }
-        }
-        return true; // Tất cả cell đều trống
-    }
-
-    private boolean isValidEmailFormat(String email) {
-        if (email == null) return false;
-        // Một regex đơn giản, có thể cần phức tạp hơn cho các trường hợp đặc biệt
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        return email.matches(emailRegex);
-    }
-
     private String getCellStringValue(Cell cell) {
         if (cell == null) {
             return "";
         }
 
-        switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue();
-            case NUMERIC:
-                return String.valueOf((int) cell.getNumericCellValue());
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            default:
-                return "";
-        }
-    }
-
-    private boolean isValidUser(UserEntity user) {
-        return user.getUsername() != null && !user.getUsername().isEmpty() &&
-                user.getEmail() != null && !user.getEmail().isEmpty();
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue();
+            case NUMERIC -> String.valueOf((int) cell.getNumericCellValue());
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            default -> "";
+        };
     }
 
     @Override
-    public List<UserResponse> searchUsers(UserSearchRequest searchRequest) {
-        List<UserEntity> users = userRepository.searchUsers(searchRequest.getUsername(),
+    public Page<UserResponse> searchUsers(UserSearchRequest searchRequest, Pageable pageable) {
+        Page<UserEntity> users = userRepository.searchUsers(searchRequest.getUserId(), searchRequest.getUsername(),
                 searchRequest.getEmail(), searchRequest.getFullName(),
-                searchRequest.getPhone(), searchRequest.getAddress());
+                searchRequest.getPhone(), searchRequest.getAddress(), pageable);
         if (users.isEmpty()) {
             throw new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode());
         }
-        return ConversionUtil.convertList(users, x -> modelMapper.map(x, UserResponse.class));
+        return ConversionUtil.convertPage(users, x -> modelMapper.map(x, UserResponse.class));
     }
 
     public byte[] exportUsersToExcel() throws IOException {
@@ -435,9 +411,4 @@ public class UserServiceImpl implements UserService {
 
         return Files.readAllBytes(Paths.get(outputPath));
     }
-
-    public List<Object[]> readExcelFile(String excelFilePath, int sheetIndex, int startRow) throws IOException {
-        return FileUtil.readExcel(excelFilePath, sheetIndex, startRow);
-    }
-
 }

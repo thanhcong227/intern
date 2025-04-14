@@ -3,7 +3,6 @@ package viettelsoftware.intern.controller;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.apache.coyote.Response;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.config.response.GeneralResponse;
 import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.BorrowingRequest;
-import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.service.impl.BorrowingServiceImpl;
 
@@ -41,7 +39,7 @@ public class BorrowingController {
 
     @PutMapping("/{borrowingId}")
     @PreAuthorize("hasAuthority('BORROWING_MANAGE')")
-    ResponseEntity<GeneralResponse<BorrowingResponse>> update(@PathVariable String borrowingId, @RequestBody Set<String> bookIds) {
+    ResponseEntity<GeneralResponse<BorrowingResponse>> update(@PathVariable String borrowingId, @RequestBody Set<BorrowingRequest.BorrowedBookItem> bookIds) {
         return responseFactory.success(borrowingServiceImpl.update(borrowingId, bookIds));
     }
 
