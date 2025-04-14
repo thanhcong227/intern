@@ -35,5 +35,6 @@ public final class ResponseStatusCodeEnum {
     public static final ResponseStatusCode BOOK_NOT_ENOUGH = ResponseStatusCode.builder().code("127").httpCode(400).build();
     public static final ResponseStatusCode BOOK_QUANTITY_INVALID = ResponseStatusCode.builder().code("128").httpCode(400).build();
     public static final ResponseStatusCode INVALID_FILE = ResponseStatusCode.builder().code("122").httpCode(400).build();
+    public static final ResponseStatusCode BOOK_OUT_OF_STOCK = ResponseStatusCode.builder().code("131").httpCode(400).build();
 
 }

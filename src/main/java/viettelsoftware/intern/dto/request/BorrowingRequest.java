@@ -18,6 +18,5 @@ public class BorrowingRequest {
     LocalDate borrowedAt;
     LocalDate dueDate;
     LocalDate returnedAt;
-
-    Set<BorrowingBookRequest> borrowings;
+    private Set<String> bookIds;
 }

@@ -158,4 +158,17 @@ public class BookServiceImpl implements BookService {
             return new byte[0];
         }
     }
+
+    @Override
+    public Page<BookResponse> searchBooks(String query, Pageable pageable) {
+        if (query == null || query.isEmpty()) {
+            return bookRepository.findAll(pageable).map(bookMapper::toBookResponse);
+        } else {
+            Page<BookEntity> books = bookRepository.searchBooks(query, pageable);
+            if (books.isEmpty()) {
+                throw new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND);
+            }
+            return books.map(bookMapper::toBookResponse);
+        }
+    }
 }

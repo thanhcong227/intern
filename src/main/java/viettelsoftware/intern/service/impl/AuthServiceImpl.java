@@ -68,6 +68,7 @@ public class AuthServiceImpl implements AuthService {
                 .expiration(expirationDate)
                 .signWith(jwtUtil.getSignInKey())
                 .claim("scope", buildScope(userEntity))
+                .claim("userId", userEntity.getUserId())
                 .compact();
     }
 

@@ -11,9 +11,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.config.response.GeneralResponse;
 import viettelsoftware.intern.config.response.ResponseFactory;
+import viettelsoftware.intern.dto.request.BorrowingRequest;
 import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.service.impl.BorrowingServiceImpl;
@@ -31,8 +33,10 @@ public class BorrowingController {
 
     @PostMapping()
     @PreAuthorize("hasAuthority('BORROWING_MANAGE')")
-    ResponseEntity<GeneralResponse<BorrowingResponse>> create(@RequestParam String userId, @RequestBody Set<String> bookIds) {
-        return responseFactory.success(borrowingServiceImpl.create(userId, bookIds));
+    public ResponseEntity<GeneralResponse<BorrowingResponse>> create(
+            @RequestBody BorrowingRequest request,
+            Authentication authentication) {
+        return responseFactory.success(borrowingServiceImpl.create(request));
     }
 
     @PutMapping("/{borrowingId}")

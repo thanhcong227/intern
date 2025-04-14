@@ -56,7 +56,7 @@ public class AuthController {
         return responseFactory.success(authService.refreshToken(token));
     }
 
-    @PostMapping("/forgotPassword")
+    @PostMapping("/forgot-password")
     public ResponseEntity<GeneralResponse<Object>> forgotPassword(@RequestBody ForgotPasswordRequest email) {
         authService.forgotPassword(email);
         return responseFactory.successNoData();

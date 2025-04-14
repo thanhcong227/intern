@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import viettelsoftware.intern.constant.ErrorCode;
 import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.BorrowedBookInfo;
+import viettelsoftware.intern.dto.request.BorrowingRequest;
 import viettelsoftware.intern.dto.request.EmailObjectRequest;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.entity.*;
@@ -56,27 +57,44 @@ public class BorrowingServiceImpl implements BorrowingService {
     private final ModelMapper modelMapper;
 
     @Override
-    public BorrowingResponse create(String userId, Set<String> bookIds) {
-        UserEntity user = userRepository.findById(userId).orElseThrow(
-                () -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
+    public BorrowingResponse create(BorrowingRequest request) {
+        UserEntity user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
+
         BorrowingEntity borrowing = BorrowingEntity.builder()
                 .user(user)
-                .borrowedAt(LocalDate.now())
-                .dueDate(LocalDate.now().plusDays(14))
+                .borrowedAt(request.getBorrowedAt() != null ? request.getBorrowedAt() : LocalDate.now())
+                .dueDate(request.getDueDate() != null ? request.getDueDate() : LocalDate.now().plusDays(14))
+                .returnedAt(request.getReturnedAt())
                 .build();
+
         borrowing = borrowingRepository.save(borrowing);
+
         BorrowingEntity finalBorrowing = borrowing;
-        Set<BorrowingBook> sets = bookIds.stream().map(bookId -> {
-            BookEntity book = bookRepository.findById(bookId).orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
+        Set<BorrowingBook> sets = request.getBookIds().stream().map(bookId -> {
+            BookEntity book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.BOOK_NOT_FOUND));
+
+            if (book.getAvailableQuantity() <= 0) {
+                throw new CustomException(ResponseStatusCodeEnum.BOOK_OUT_OF_STOCK);
+            }
+
+            book.setAvailableQuantity(book.getAvailableQuantity() - 1);
+            bookRepository.save(book);
+
             return BorrowingBook.builder()
                     .borrowing(finalBorrowing)
                     .book(book)
                     .build();
         }).collect(Collectors.toSet());
+
         borrowingBookRepository.saveAll(sets);
         borrowing.setBorrowings(sets);
+
         return borrowingMapper.toBorrowingResponse(borrowing);
     }
+
+
 
     @Override
     public BorrowingResponse update(String borrowingId, Set<String> bookIds) {
@@ -204,32 +222,38 @@ public class BorrowingServiceImpl implements BorrowingService {
         UserEntity user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
 
-        // Lấy danh sách các BorrowingEntity chưa trả
+        // Lấy các Borrowing chưa trả
         List<BorrowingEntity> activeBorrowings = borrowingRepository.findByUserAndReturnedAtIsNull(user);
         log.info("Active borrowings: {}", activeBorrowings.size());
 
-        for (BorrowingEntity b : activeBorrowings) {
-            log.info("Borrowing ID: {}", b.getBorrowingId());
-            log.info("BorrowingBooks size: {}", b.getBorrowings().size());
-        }
+        // Gom sách theo tiêu đề và tổng hợp quantity
+        Map<String, List<BorrowingBook>> groupedByTitle = activeBorrowings.stream()
+                .flatMap(b -> b.getBorrowings().stream())
+                .collect(Collectors.groupingBy(bb -> bb.getBook().getTitle()));
 
-//        // BORROWED, RETURNED, OVERDUE, return String status borrowed
-//        String status = "BORROWED";
-//        for (BorrowingEntity b : activeBorrowings) {
-//            if (b.getDueDate().isBefore(LocalDate.now())) {
-//                status = "OVERDUE";
-//            }
-//        }
+        // Chuyển về danh sách BorrowedBookInfo gộp
+        return groupedByTitle.entrySet().stream()
+                .map(entry -> {
+                    String title = entry.getKey();
+                    List<BorrowingBook> borrowingBooks = entry.getValue();
 
-        // Lấy tất cả BorrowingBook liên quan đến các Borrowing chưa trả
-        return activeBorrowings.stream()
-                .flatMap(borrowing -> borrowing.getBorrowings().stream())
-                .map(borrowingBook -> new BorrowedBookInfo(
-                        borrowingBook.getBook().getTitle(),
-                        borrowingBook.getQuantity(),
-                        borrowingBook.getBorrowing().getBorrowedAt(),
-                        borrowingBook.getBorrowing().getDueDate()
-                ))
-                .collect(Collectors.toList());
+                    int totalQuantity = borrowingBooks.stream()
+                            .mapToInt(BorrowingBook::getQuantity)
+                            .sum();
+
+                    // Lấy ngày mượn sớm nhất và hạn trả trễ nhất
+                    LocalDate earliestBorrowedAt = borrowingBooks.stream()
+                            .map(bb -> bb.getBorrowing().getBorrowedAt())
+                            .min(LocalDate::compareTo)
+                            .orElse(null);
+
+                    LocalDate latestDueDate = borrowingBooks.stream()
+                            .map(bb -> bb.getBorrowing().getDueDate())
+                            .max(LocalDate::compareTo)
+                            .orElse(null);
+
+                    return new BorrowedBookInfo(title, totalQuantity, earliestBorrowedAt, latestDueDate);
+                })
+                .toList();
     }
 }

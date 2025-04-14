@@ -14,4 +14,5 @@ public interface BookService {
     BookResponse getBook(String bookId);
     Page<BookResponse> getAllBooks(Pageable pageable);
     byte[] exportBooksToExcel();
+    Page<BookResponse> searchBooks(String query, Pageable pageable);
 }

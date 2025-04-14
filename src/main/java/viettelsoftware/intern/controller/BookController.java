@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +16,7 @@ import viettelsoftware.intern.config.response.GeneralResponse;
 import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.BookRequest;
 import viettelsoftware.intern.dto.response.BookResponse;
+import viettelsoftware.intern.entity.BookEntity;
 import viettelsoftware.intern.service.impl.BookServiceImpl;
 
 @RestController
@@ -68,5 +70,17 @@ public class BookController {
                 .status(HttpStatus.OK)
                 .headers(headers)
                 .body(excelData);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<GeneralResponse<Page<BookResponse>>> searchBooks(
+            @RequestParam("query") String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<BookResponse> result = bookServiceImpl.searchBooks(query, pageable);
+
+        return responseFactory.success(result);
     }
 }
