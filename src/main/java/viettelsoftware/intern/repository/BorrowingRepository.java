@@ -15,4 +15,6 @@ public interface BorrowingRepository extends JpaRepository<BorrowingEntity,Strin
     boolean existsByBorrowingId(String borrowingId);
     List<BorrowingEntity> findByDueDate(LocalDate dueDate);
     List<BorrowingEntity> findByUserAndReturnedAtIsNull(UserEntity user);
+    List<BorrowingEntity> findByReturnedAtIsNullAndDueDateBetween(LocalDate startDate, LocalDate endDate);
+    List<BorrowingEntity> findByReturnedAtIsNullAndDueDateBefore(LocalDate dueDate);
 }

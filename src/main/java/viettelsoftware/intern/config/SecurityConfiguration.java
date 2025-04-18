@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
+//@EnableMethodSecurity
 public class SecurityConfiguration {
 
     private static final Map<String, String[]> API_PERMISSIONS = new HashMap<>() {{

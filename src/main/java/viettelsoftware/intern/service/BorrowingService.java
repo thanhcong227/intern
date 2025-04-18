@@ -2,7 +2,9 @@ package viettelsoftware.intern.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import viettelsoftware.intern.dto.BorrowedBookInfo;
+import viettelsoftware.intern.dto.PartialReturnRequest;
 import viettelsoftware.intern.dto.request.BorrowingRequest;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 
@@ -20,4 +22,10 @@ public interface BorrowingService {
     byte[] exportBorrowingsToExcel();
     int scheduleReminderEmails();
     List<BorrowedBookInfo> getBorrowedBooksByCurrentUser();
+
+    @Transactional
+    void returnBooks(String borrowingId);
+
+    @Transactional
+    void returnBooksPartially(PartialReturnRequest request);
 }

@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.config.response.GeneralResponse;
 import viettelsoftware.intern.config.response.ResponseFactory;
 import viettelsoftware.intern.dto.request.GenreRequest;
-import viettelsoftware.intern.dto.response.ApiResponse;
 import viettelsoftware.intern.dto.response.GenreResponse;
 import viettelsoftware.intern.service.impl.GenreServiceImpl;
 

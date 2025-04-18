@@ -223,42 +223,45 @@ public class UserServiceImpl implements UserService {
                 rowData[3] = phone;
                 rowData[4] = address;
 
-                if(!seenUsernames.add(username)) {
-                    errorMsg.append("Duplicate username: ").append(username).append(". ");
+                boolean usernameDuplicated = seenUsernames.contains(username);
+                boolean emailDuplicated = seenEmails.contains(email);
+
+                if (usernameDuplicated) {
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.USERNAME_DUPLICATE)).append(username).append(". ");
                     isValid = false;
                 }
 
-                if(!seenEmails.add(email)) {
-                    errorMsg.append("Duplicate email: ").append(email).append(". ");
+                if (emailDuplicated) {
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.EMAIL_DUPLICATE)).append(email).append(". ");
                     isValid = false;
                 }
 
                 if (StringUtils.isBlank(username)) {
-                    errorMsg.append("Username is required. ");
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.USERNAME_REQUIRED.getCode()).getMessage());
                     isValid = false;
                 } else if (existingUsernames.contains(username)) {
-                    errorMsg.append("Username already exists. ");
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.USER_EXISTED.getCode()).getMessage());
                     isValid = false;
                 }
 
                 if (StringUtils.isBlank(email)) {
-                    errorMsg.append("Email is required. ");
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.EMAIL_REQUIRED.getCode()).getMessage());
                     isValid = false;
                 } else if (!email.matches(AppConstant.REGEX_EMAIL)) {
-                    errorMsg.append("Invalid email format. ");
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.EMAIL_INVALID.getCode()).getMessage());
                     isValid = false;
                 } else if (existingEmails.contains(email)) {
-                    errorMsg.append("Email already exists. ");
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.EMAIL_EXISTED.getCode()).getMessage());
                     isValid = false;
                 }
 
                 if (StringUtils.isBlank(phone)) {
-                    errorMsg.append("Phone is required. ");
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.PHONE_REQUIRED.getCode()).getMessage());
                     isValid = false;
                 }
 
                 if (StringUtils.isBlank(address)) {
-                    errorMsg.append("Address is required. ");
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.ADDRESS_REQUIRED.getCode()).getMessage());
                     isValid = false;
                 }
 
@@ -267,6 +270,9 @@ public class UserServiceImpl implements UserService {
                     errorData.add(rowData);
                     continue;
                 }
+
+                seenUsernames.add(username);
+                seenEmails.add(email);
 
                 try {
                     UserEntity user = new UserEntity();
@@ -280,7 +286,8 @@ public class UserServiceImpl implements UserService {
 
                     validUsersToSave.add(user);
                 } catch (Exception e) {
-                    errorMsg.append("Error creating user: ").append(e.getMessage());
+                    errorMsg.append(new CustomException(ResponseStatusCodeEnum.USER_IMPORT_ERROR).getMessage()
+                    ).append(e.getMessage());
                     rowData[5] = errorMsg.toString().trim();
                 }
             }
@@ -384,9 +391,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<UserResponse> searchUsers(UserSearchRequest searchRequest, Pageable pageable) {
-        Page<UserEntity> users = userRepository.searchUsers(searchRequest.getUserId(), searchRequest.getUsername(),
-                searchRequest.getEmail(), searchRequest.getFullName(),
-                searchRequest.getPhone(), searchRequest.getAddress(), pageable);
+        Page<UserEntity> users = userRepository.searchUsers(searchRequest, pageable);
         if (users.isEmpty()) {
             throw new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND.getCode());
         }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Thông báo quá hạn trả sách</title>
+</head>
+<body>
+<div style="margin-bottom: 14px;">
+    Xin chào, <span style="font-weight: bold;" th:text="${username}">[Tên người dùng]</span>
+</div>
+<div style="margin-bottom: 14px;">
+    Bạn đã quá hạn trả sách, với các sách cần trả vào ngày <span style="font-weight: bold;" th:text="${dueDate}">[Ngày hết hạn]</span>.
+</div>
+<div style="margin-bottom: 14px;">
+    Vui lòng trả sách ngay lập tức để tránh bị phạt hoặc đình chỉ quyền mượn sách.
+</div>
+<div style="margin-bottom: 14px;">
+    Danh sách sách bạn đã mượn:
+    <ul>
+        <li th:each="book : ${bookTitles}" th:text="${book}">[Tên sách]</li>
+    </ul>
+</div>
+<div style="margin-bottom: 14px;">
+    Cảm ơn bạn đã sử dụng dịch vụ của thư viện chúng tôi.
+</div>
+<div style="margin-bottom: 14px;">
+    Trân trọng,<br>
+    Thư viện
+</div>
+</body>
+</html>

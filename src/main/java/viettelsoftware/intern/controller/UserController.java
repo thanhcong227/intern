@@ -55,7 +55,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('USER_VIEW') or #userId == authentication.principal.getUserId()")
     ResponseEntity<GeneralResponse<UserResponse>> getUser(@PathVariable String userId) {
         return responseFactory.success(userServiceImpl.getUser(userId));
     }

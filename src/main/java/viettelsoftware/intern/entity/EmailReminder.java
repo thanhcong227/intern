@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapKeyColumn;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +19,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Getter
@@ -36,7 +38,12 @@ public class EmailReminder {
     @ElementCollection
     @CollectionTable(name = "email_reminder_books", joinColumns = @JoinColumn(name = "email_reminder_id"))
     @Column(name = "book_title")
-    private List<String> bookTitles;
+    List<String> bookTitles;
+    @Column(name = "template_name")
+    String templateName;
+    @ElementCollection
+    @Column(name = "params", columnDefinition = "TEXT")
+    private Map<String, Object> params;
     String dueDate;
     LocalDateTime scheduledTime;
     boolean sent;

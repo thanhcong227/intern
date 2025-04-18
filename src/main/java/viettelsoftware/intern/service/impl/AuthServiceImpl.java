@@ -15,8 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import viettelsoftware.intern.config.Jwt.JwtUtil;
-import viettelsoftware.intern.constant.ErrorCode;
-import viettelsoftware.intern.constant.ResponseStatusCode;
 import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.dto.request.*;
 import viettelsoftware.intern.dto.response.AuthenticationResponse;
@@ -172,7 +170,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
         if (!CommonUtil.isValidEmail(request.getEmail()))
-            throw new CustomException(ResponseStatusCodeEnum.INVALID_EMAIL);
+            throw new CustomException(ResponseStatusCodeEnum.EMAIL_INVALID);
 
         UserEntity user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
 
@@ -209,7 +207,7 @@ public class AuthServiceImpl implements AuthService {
         String keyGetEmail = RESET_PW_PREFIX + key;
         String email = redisTemplate.opsForValue().get(keyGetEmail);
         if (email == null) {
-            throw new CustomException(ResponseStatusCodeEnum.INVALID_EMAIL);
+            throw new CustomException(ResponseStatusCodeEnum.EMAIL_INVALID);
         }
         String keyGetUUID = RESET_PW_PREFIX + email;
         String uuid = redisTemplate.opsForValue().get(keyGetUUID);

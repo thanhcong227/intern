@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.entity.BorrowingEntity;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
@@ -16,7 +17,19 @@ public class BorrowMapper {
         dto.setBorrowedAt(borrowing.getBorrowedAt());
         dto.setDueDate(borrowing.getDueDate());
         dto.setReturnedAt(borrowing.getReturnedAt());
-        dto.setBorrowingBookIds(borrowing.getBorrowedBooks().stream().map(book -> book.getBook().getBookId()).collect(Collectors.toSet()));
+
+        List<BorrowingResponse.BookDetail> bookDetails = borrowing.getBorrowedBooks().stream()
+                .map(detail -> {
+                    BorrowingResponse.BookDetail bookDetail = new BorrowingResponse.BookDetail();
+                    bookDetail.setBookId(detail.getBook().getBookId());
+                    bookDetail.setTitle(detail.getBook().getTitle());
+                    bookDetail.setQuantity(detail.getQuantity());
+                    return bookDetail;
+                })
+                .collect(Collectors.toList());
+
+        dto.setBorrowedBooks(bookDetails);
+
         return dto;
     }
 }

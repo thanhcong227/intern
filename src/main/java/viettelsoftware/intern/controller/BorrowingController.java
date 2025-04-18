@@ -3,6 +3,7 @@ package viettelsoftware.intern.controller;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -14,12 +15,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import viettelsoftware.intern.config.response.GeneralResponse;
 import viettelsoftware.intern.config.response.ResponseFactory;
+import viettelsoftware.intern.dto.PartialReturnRequest;
 import viettelsoftware.intern.dto.request.BorrowingRequest;
 import viettelsoftware.intern.dto.response.BorrowingResponse;
 import viettelsoftware.intern.service.impl.BorrowingServiceImpl;
 
 import java.util.Set;
 
+@Slf4j
 @RestController
 @RequestMapping("/borrowing")
 @RequiredArgsConstructor
@@ -73,5 +76,21 @@ public class BorrowingController {
                 .status(HttpStatus.OK)
                 .headers(headers)
                 .body(excelData);
+    }
+
+    @PostMapping("returnAll")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<GeneralResponse<Object>> returnBook(@RequestParam String borrowingId) {
+        log.info("Request to return book with borrowingId: {}", borrowingId);
+        borrowingServiceImpl.returnBooks(borrowingId);
+        log.info("Successfully returned book with borrowingId: {}", borrowingId);
+        return responseFactory.successNoData();
+    }
+
+    @PostMapping("return")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<GeneralResponse<Object>> returnBook(@RequestBody PartialReturnRequest request) {
+        borrowingServiceImpl.returnBooksPartially(request);
+        return responseFactory.successNoData();
     }
 }

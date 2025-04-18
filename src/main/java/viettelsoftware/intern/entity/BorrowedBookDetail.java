@@ -15,6 +15,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
+
 @Entity
 @Getter
 @Setter
@@ -38,4 +40,5 @@ public class BorrowedBookDetail {
     BorrowingEntity borrowing;
 
     int quantity;
+    LocalDate returnedAt;
 }

@@ -29,12 +29,22 @@ public final class ResponseStatusCodeEnum {
     public static final ResponseStatusCode UNKNOWN = ResponseStatusCode.builder().code("555").httpCode(400).build();
     public static final ResponseStatusCode INVALID_FILE_FORMAT = ResponseStatusCode.builder().code("121").httpCode(400).build();
     public static final ResponseStatusCode DATABASE_ERROR = ResponseStatusCode.builder().code("123").httpCode(400).build();
-    public static final ResponseStatusCode INVALID_EMAIL = ResponseStatusCode.builder().code("124").httpCode(400).build();
+    public static final ResponseStatusCode EMAIL_INVALID = ResponseStatusCode.builder().code("124").httpCode(400).build();
     public static final ResponseStatusCode TOKEN_INVALID = ResponseStatusCode.builder().code("125").httpCode(400).build();
     public static final ResponseStatusCode TOKEN_EXPIRED = ResponseStatusCode.builder().code("126").httpCode(400).build();
     public static final ResponseStatusCode BOOK_NOT_ENOUGH = ResponseStatusCode.builder().code("127").httpCode(400).build();
     public static final ResponseStatusCode BOOK_QUANTITY_INVALID = ResponseStatusCode.builder().code("128").httpCode(400).build();
     public static final ResponseStatusCode INVALID_FILE = ResponseStatusCode.builder().code("122").httpCode(400).build();
     public static final ResponseStatusCode BOOK_OUT_OF_STOCK = ResponseStatusCode.builder().code("131").httpCode(400).build();
+    public static final ResponseStatusCode EMAIL_EXISTED = ResponseStatusCode.builder().code("132").httpCode(400).build();
+    public static final ResponseStatusCode USERNAME_DUPLICATE = ResponseStatusCode.builder().code("133").httpCode(400).build();
+    public static final ResponseStatusCode EMAIL_DUPLICATE = ResponseStatusCode.builder().code("134").httpCode(400).build();
+    public static final ResponseStatusCode USERNAME_REQUIRED = ResponseStatusCode.builder().code("135").httpCode(400).build();
+    public static final ResponseStatusCode EMAIL_REQUIRED = ResponseStatusCode.builder().code("136").httpCode(400).build();
+    public static final ResponseStatusCode PHONE_REQUIRED = ResponseStatusCode.builder().code("137").httpCode(400).build();
+    public static final ResponseStatusCode ADDRESS_REQUIRED = ResponseStatusCode.builder().code("138").httpCode(400).build();
+    public static final ResponseStatusCode USER_IMPORT_ERROR = ResponseStatusCode.builder().code("139").httpCode(400).build();
+    public static final ResponseStatusCode BOOK_ALREADY_RETURNED = ResponseStatusCode.builder().code("140").httpCode(400).build();
+    public static final ResponseStatusCode INVALID_RETURN_QUANTITY = ResponseStatusCode.builder().code("141").httpCode(400).build();
 
 }

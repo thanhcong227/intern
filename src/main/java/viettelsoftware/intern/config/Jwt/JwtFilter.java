@@ -1,6 +1,7 @@
 package viettelsoftware.intern.config.Jwt;
 
 import io.jsonwebtoken.Claims;
+import io.micrometer.common.lang.NonNullApi;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,19 +14,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.config.UserPrincipal;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.entity.UserEntity;
-import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.repository.UserRepository;
-import viettelsoftware.intern.service.impl.AuthServiceImpl;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.stream.Collectors;
 
 @Slf4j
+@NonNullApi
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
@@ -37,26 +37,27 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
         String token = getTokenFromRequest(request);
         if (StringUtils.hasText(token) && !jwtUtil.isTokenExpired(token)) {
             String username = jwtUtil.extractUsername(token);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserEntity userEntity = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                UserEntity userEntity = userRepository.findByUsernameIgnoreCase(username)
+                        .orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
 
                 Claims claims = jwtUtil.getClaims(token);
                 Object rolesClaim = claims.get("scope");
 
-                if (rolesClaim == null) {
-                    throw new AppException(ErrorCode.USER_NOT_FOUND);
-                }
-
                 Collection<? extends GrantedAuthority> authorities = Arrays.stream(rolesClaim.toString().split(" "))
                         .filter(auth -> !auth.trim().isEmpty())
                         .map(SimpleGrantedAuthority::new)
-                        .collect(Collectors.toList());
+                        .toList();
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userEntity, null, authorities);
+                UserPrincipal userPrincipal = new UserPrincipal(userEntity);
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userPrincipal, null, authorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -67,11 +68,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-        log.info("Authorization Header: {}", bearerToken); // Kiểm tra giá trị header
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            String token = bearerToken.substring(7);
-            log.info("Extracted Token: {}", token); // Kiểm tra token đã cắt đúng chưa
-            return token;
+            return bearerToken.substring(7);
         }
         return null;
     }

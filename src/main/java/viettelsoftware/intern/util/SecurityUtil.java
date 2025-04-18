@@ -6,6 +6,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import viettelsoftware.intern.config.CustomUser;
+import viettelsoftware.intern.config.UserPrincipal;
 import viettelsoftware.intern.entity.UserEntity;
 
 import java.util.List;
@@ -74,6 +75,8 @@ public final class SecurityUtil {
             return Optional.of(customUser);
         } else if (principal instanceof UserDetails userDetails) {
             return Optional.of(userDetails);
+        } else if (principal instanceof UserPrincipal userPrincipal) {
+            return Optional.of(userPrincipal);
         }
         return Optional.empty();
     }

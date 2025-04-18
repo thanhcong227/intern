@@ -7,9 +7,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import viettelsoftware.intern.constant.ErrorCode;
+import viettelsoftware.intern.constant.ResponseStatusCodeEnum;
 import viettelsoftware.intern.entity.UserEntity;
-import viettelsoftware.intern.exception.AppException;
+import viettelsoftware.intern.exception.CustomException;
 import viettelsoftware.intern.repository.UserRepository;
 
 import java.util.List;
@@ -23,12 +23,12 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity userEntity = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserEntity userEntity = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND));
         if (userEntity != null) {
             List<GrantedAuthority> roles = userEntity.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
 
             return new CustomUser(userEntity.getUsername(), userEntity.getPassword(), roles);
         }
-        throw new UsernameNotFoundException(ErrorCode.USER_NOT_FOUND.getMessages());
+        throw new CustomException(ResponseStatusCodeEnum.USER_NOT_FOUND);
     }
 }

@@ -12,7 +12,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BorrowedBookInfo {
-
+    private String borrowingId;
+    private String bookId;
     private String bookTitle;
     private int quantity;
     private LocalDate borrowedDate;
